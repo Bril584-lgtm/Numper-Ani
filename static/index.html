@@ -215,35 +215,42 @@
   <header>
     <!-- Numper mascot: orange cat with glasses holding a book -->
     <svg id="logo" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
+      <!-- Background -->
       <circle cx="22" cy="22" r="22" fill="#f97316"/>
-      <!-- Body -->
-      <ellipse cx="22" cy="28" rx="10" ry="9" fill="#fdba74"/>
-      <!-- Book -->
-      <rect x="14" y="26" width="8" height="10" rx="1" fill="#1e40af"/>
-      <rect x="14.5" y="26.5" width="7" height="9" rx="0.5" fill="#3b82f6"/>
-      <line x1="18" y1="27" x2="18" y2="35" stroke="#1e40af" stroke-width="0.5"/>
-      <!-- Head -->
-      <ellipse cx="22" cy="16" rx="9" ry="8" fill="#fdba74"/>
-      <!-- Ears -->
-      <polygon points="13,10 11,5 16,9" fill="#f97316"/>
-      <polygon points="31,10 33,5 28,9" fill="#f97316"/>
-      <!-- Eyes -->
-      <ellipse cx="18.5" cy="15.5" rx="2.5" ry="1.5" fill="#fff"/>
-      <ellipse cx="25.5" cy="15.5" rx="2.5" ry="1.5" fill="#fff"/>
-      <circle cx="19" cy="15.5" r="1" fill="#333"/>
-      <circle cx="26" cy="15.5" r="1" fill="#333"/>
-      <!-- Glasses -->
-      <rect x="15.5" y="13.5" width="6" height="4" rx="1.5" fill="none" stroke="#333" stroke-width="0.8"/>
-      <rect x="22.5" y="13.5" width="6" height="4" rx="1.5" fill="none" stroke="#333" stroke-width="0.8"/>
-      <line x1="21.5" y1="15.5" x2="22.5" y2="15.5" stroke="#333" stroke-width="0.8"/>
-      <!-- Nose + mouth -->
-      <ellipse cx="22" cy="18.5" rx="1" ry="0.7" fill="#f97316"/>
-      <path d="M20.5 19.5 Q22 20.5 23.5 19.5" stroke="#f97316" stroke-width="0.7" fill="none"/>
-      <!-- Whiskers -->
-      <line x1="13" y1="17" x2="18" y2="18" stroke="#a16207" stroke-width="0.5"/>
-      <line x1="13" y1="19" x2="18" y2="19" stroke="#a16207" stroke-width="0.5"/>
-      <line x1="31" y1="17" x2="26" y2="18" stroke="#a16207" stroke-width="0.5"/>
-      <line x1="31" y1="19" x2="26" y2="19" stroke="#a16207" stroke-width="0.5"/>
+      <!-- Ears — drawn before head so head overlaps base -->
+      <polygon points="9,19 14,3 21,15" fill="#f97316"/>
+      <polygon points="35,19 30,3 23,15" fill="#f97316"/>
+      <!-- Ear inner (pink) -->
+      <polygon points="10.5,17.5 14,8 19,15" fill="#fb923c"/>
+      <polygon points="33.5,17.5 30,8 25,15" fill="#fb923c"/>
+      <!-- Round cat head -->
+      <circle cx="22" cy="26" r="16" fill="#fdba74"/>
+      <!-- Eyes white -->
+      <circle cx="16" cy="23" r="3.5" fill="#fff"/>
+      <circle cx="28" cy="23" r="3.5" fill="#fff"/>
+      <!-- Pupils -->
+      <circle cx="16.5" cy="23.2" r="2.1" fill="#1a1a2e"/>
+      <circle cx="28.5" cy="23.2" r="2.1" fill="#1a1a2e"/>
+      <!-- Eye shine -->
+      <circle cx="17.3" cy="22.1" r="0.7" fill="#fff"/>
+      <circle cx="29.3" cy="22.1" r="0.7" fill="#fff"/>
+      <!-- Glasses frames -->
+      <rect x="12" y="19.5" width="8.5" height="7" rx="2.5" fill="none" stroke="#333" stroke-width="1.2"/>
+      <rect x="23.5" y="19.5" width="8.5" height="7" rx="2.5" fill="none" stroke="#333" stroke-width="1.2"/>
+      <!-- Bridge + arms -->
+      <line x1="20.5" y1="23" x2="23.5" y2="23" stroke="#333" stroke-width="1.2"/>
+      <line x1="12" y1="22.5" x2="8.5" y2="21.5" stroke="#333" stroke-width="0.9"/>
+      <line x1="32" y1="22.5" x2="35.5" y2="21.5" stroke="#333" stroke-width="0.9"/>
+      <!-- Nose -->
+      <ellipse cx="22" cy="28.5" rx="1.5" ry="1" fill="#e07b39"/>
+      <!-- Mouth -->
+      <path d="M19.5 30.5 Q22 32.5 24.5 30.5" stroke="#c2410c" stroke-width="1" fill="none" stroke-linecap="round"/>
+      <!-- Whiskers left -->
+      <line x1="4" y1="27.5" x2="13.5" y2="28.5" stroke="#92400e" stroke-width="0.7"/>
+      <line x1="4" y1="30" x2="13.5" y2="30" stroke="#92400e" stroke-width="0.7"/>
+      <!-- Whiskers right -->
+      <line x1="40" y1="27.5" x2="30.5" y2="28.5" stroke="#92400e" stroke-width="0.7"/>
+      <line x1="40" y1="30" x2="30.5" y2="30" stroke="#92400e" stroke-width="0.7"/>
     </svg>
     <div class="brand">Numper <span>Ani</span></div>
   </header>
