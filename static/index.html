@@ -72,17 +72,26 @@
     /* ─── Player ─── */
     #player-view { display: none; position: fixed; inset: 0; background: #000; z-index: 100; flex-direction: column; }
     #player-view.open { display: flex; }
-    #player-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(0,0,0,0.8); position: absolute; top: 0; left: 0; right: 0; z-index: 10; }
+    #player-topbar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: rgba(0,0,0,0.9); flex-shrink: 0; }
     #player-back { border: none; background: none; color: #fff; font-size: 1.5rem; cursor: pointer; line-height: 1; }
-    #player-title { color: #fff; font-size: 1rem; font-weight: 600; flex: 1; }
-    #player-src { color: var(--muted); font-size: .75rem; }
+    #player-title { color: #fff; font-size: 1rem; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    #player-src { color: var(--muted); font-size: .75rem; white-space: nowrap; }
     #cc-btn { border: 1px solid #444; background: none; color: #ccc; padding: 3px 9px; border-radius: 5px; font-size: .75rem; cursor: pointer; transition: all .15s; }
     #cc-btn.on { border-color: var(--accent); color: var(--accent); }
-    #source-switcher { display: flex; gap: 6px; flex-wrap: wrap; padding: 0 16px 10px; background: rgba(0,0,0,0.8); }
+    #sub-select { position: relative; }
+    #sub-select-btn { border: 1px solid #444; background: none; color: #ccc; padding: 3px 9px; border-radius: 5px; font-size: .75rem; cursor: pointer; transition: all .15s; }
+    #sub-select-btn.on { border-color: var(--accent); color: var(--accent); }
+    #sub-dropdown { display: none; position: absolute; top: calc(100% + 6px); right: 0; background: #1a1a2e; border: 1px solid #444; border-radius: 8px; overflow: hidden; z-index: 20; min-width: 140px; box-shadow: 0 4px 20px rgba(0,0,0,0.6); }
+    #sub-select.open #sub-dropdown { display: block; }
+    .sub-opt { display: block; width: 100%; padding: 8px 14px; background: none; border: none; color: #ccc; font-size: .8rem; cursor: pointer; text-align: left; transition: background .15s; }
+    .sub-opt:hover { background: rgba(255,255,255,0.08); }
+    .sub-opt.active { color: var(--accent); }
+    #source-switcher { display: flex; gap: 6px; flex-wrap: wrap; padding: 6px 16px; background: rgba(0,0,0,0.75); flex-shrink: 0; min-height: 34px; align-items: center; }
     .src-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a2e; color: #ccc; font-size: .75rem; cursor: pointer; transition: all .15s; }
     .src-btn:hover { border-color: var(--accent); color: var(--accent); }
     .src-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
     .src-btn.loading { opacity: 0.5; cursor: wait; }
+    #player-video-wrap { flex: 1; position: relative; overflow: hidden; background: #000; }
     video { width: 100%; height: 100%; object-fit: contain; }
     #loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); z-index: 5; }
     .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -322,6 +331,10 @@
     <div id="search-progress-bar"></div>
   </div>
   <div id="search-loading-label">Searching all sources…</div>
+  <div id="loader-sources-wrap" style="display:none;flex-direction:column;align-items:center;gap:8px;margin-top:4px;">
+    <div style="font-size:.75rem;color:#666;">Auto-selecting · or pick a server:</div>
+    <div id="loader-sources" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:340px;"></div>
+  </div>
 </div>
 
 <!-- Player overlay -->
@@ -330,14 +343,20 @@
     <button id="player-back">✕</button>
     <div id="player-title"></div>
     <div id="player-src"></div>
+    <div id="sub-select">
+      <button id="sub-select-btn" title="Subtitles" style="display:none">SUB</button>
+      <div id="sub-dropdown"></div>
+    </div>
     <button id="cc-btn" title="Toggle captions" style="display:none">CC</button>
   </div>
   <div id="source-switcher"></div>
-  <div id="loading-overlay"><div class="spinner"></div></div>
-  <div id="error-msg"></div>
-  <video id="video" controls autoplay crossorigin="anonymous">
-    <track id="cc-track" kind="subtitles" srclang="en" label="English" default/>
-  </video>
+  <div id="player-video-wrap">
+    <div id="loading-overlay"><div class="spinner"></div></div>
+    <div id="error-msg"></div>
+    <video id="video" controls autoplay crossorigin="anonymous">
+      <track id="cc-track" kind="subtitles" srclang="en" label="English" default/>
+    </video>
+  </div>
 </div>
 
 <script>
@@ -477,46 +496,104 @@ $('back-btn').addEventListener('click', () => {
 });
 
 // ─── Playback ─────────────────────────────────────────────
+const SOURCE_LABELS = {
+  'Yt-mp4': 'Direct MP4', 'Fm-Hls': 'Filemoon', 'Sw': 'Streamwish',
+  'Vid-mp4': 'GogoAnime', 'Ok': 'OK.ru', 'S-mp4': 'Sharepoint',
+  'Luf-Mp4': 'HiAnime', 'Default': 'Wixmp', 'Vg': 'Vidguard', 'Mp4': 'Mp4Upload',
+};
+
+function _openPlayer(anime, ep, streamData) {
+  $('player-view').classList.add('open');
+  showCcBtn();
+  $('player-title').textContent = `${anime.title} · Ep ${ep}`;
+  $('player-src').textContent = streamData.source || '';
+  show($('loading-overlay'));
+  hide($('error-msg'));
+  $('video').src = '';
+  loadStream(streamData.url, streamData.type);
+  loadSourceSwitcher(anime, ep);
+  fetch('/api/history', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      source: anime.source, id: anime.id, title: anime.title,
+      ep, dub: dubMode, thumb: anime.thumb || ''
+    })
+  });
+}
+
 async function playEpisode(anime, ep) {
-  // Show cat loader while fetching stream
   const loader = showSearchLoading(`Finding stream for ${anime.title} Ep ${ep}…`);
+
+  // Hide loader sources from previous call
+  $('loader-sources').innerHTML = '';
+  $('loader-sources-wrap').style.display = 'none';
+
+  const abortCtrl = new AbortController();
+  let resolved = false;
+
+  // Fetch source list in parallel (fast — no Playwright, just decryption)
+  fetch(`${API}/api/sources?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}&ep=${ep}&dub=${dubMode}`)
+    .then(r => r.json())
+    .then(data => {
+      if (resolved || !data.sources?.length) return;
+      // Show source buttons in the cat loader
+      const container = $('loader-sources');
+      container.innerHTML = '';
+      for (const src of data.sources) {
+        const btn = document.createElement('button');
+        btn.className = 'src-btn';
+        btn.textContent = SOURCE_LABELS[src.name] || src.name;
+        btn.addEventListener('click', async () => {
+          if (resolved) return;
+          resolved = true;
+          abortCtrl.abort();
+          loader.done();
+          $('loader-sources-wrap').style.display = 'none';
+          // Resolve chosen source and open player
+          $('player-view').classList.add('open');
+          showCcBtn();
+          $('player-title').textContent = `${anime.title} · Ep ${ep}`;
+          $('player-src').textContent = SOURCE_LABELS[src.name] || src.name;
+          show($('loading-overlay'));
+          hide($('error-msg'));
+          $('video').src = '';
+          try {
+            const r = await fetch(`${API}/api/resolve?embed_url=${encodeURIComponent(src.url)}&name=${encodeURIComponent(src.name)}`);
+            const d = await r.json();
+            $('player-src').textContent = d.source || src.name;
+            loadStream(d.url, d.type);
+            loadSourceSwitcher(anime, ep);
+          } catch (e) {
+            hide($('loading-overlay'));
+            $('error-msg').innerHTML = `<b>⚠ Source failed</b><br><small>${e.message}</small>`;
+            $('error-msg').style.display = 'flex';
+          }
+        });
+        container.appendChild(btn);
+      }
+      $('loader-sources-wrap').style.display = 'flex';
+    })
+    .catch(() => {});
 
   try {
     const res = await fetch(
-      `${API}/api/stream?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}&ep=${ep}&dub=${dubMode}`
+      `${API}/api/stream?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}&ep=${ep}&dub=${dubMode}`,
+      { signal: abortCtrl.signal }
     );
     const data = await res.json();
+    if (resolved) return;
+    resolved = true;
 
-    if (!res.ok || data.error) {
-      throw new Error(data.detail || data.error || 'Stream unavailable');
-    }
+    if (!res.ok || data.error) throw new Error(data.detail || data.error || 'Stream unavailable');
 
     loader.done();
-
-    // Open player after stream is resolved
-    $('player-view').classList.add('open');
-    showCcBtn();
-    $('player-title').textContent = `${anime.title} · Ep ${ep}`;
-    $('player-src').textContent = data.source || '';
-    show($('loading-overlay'));
-    hide($('error-msg'));
-    $('video').src = '';
-    loadStream(data.url, data.type);
-
-    // Load source switcher in background (non-blocking)
-    loadSourceSwitcher(anime, ep);
-
-    // Save to history
-    await fetch('/api/history', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        source: anime.source, id: anime.id, title: anime.title,
-        ep, dub: dubMode, thumb: anime.thumb || ''
-      })
-    });
+    $('loader-sources-wrap').style.display = 'none';
+    _openPlayer(anime, ep, data);
   } catch (e) {
+    if (e.name === 'AbortError') return; // user picked a source manually
     loader.fail();
+    $('loader-sources-wrap').style.display = 'none';
     status('⚠ Stream failed: ' + e.message, true);
   }
 }
@@ -524,13 +601,11 @@ async function playEpisode(anime, ep) {
 function loadStream(url, type) {
   const video = $('video');
   if (hls) { hls.destroy(); hls = null; }
+  _clearSubTracks();
 
   function onReady() {
     hide($('loading-overlay'));
-    video.play().catch(() => {
-      // Autoplay blocked — video is ready, user can hit play manually
-      hide($('loading-overlay'));
-    });
+    video.play().catch(() => hide($('loading-overlay')));
   }
 
   function onFatal(detail) {
@@ -540,16 +615,16 @@ function loadStream(url, type) {
   }
 
   if (type === 'hls' && Hls.isSupported()) {
-    // CDN has CORS:* — load directly, no proxy needed
     hls = new Hls({ enableWorker: true, lowLatencyMode: false, maxBufferLength: 30 });
     hls.loadSource(url);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+    hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
+      if (data.subtitleTracks?.length) _buildSubMenu(data.subtitleTracks);
+    });
     hls.on(Hls.Events.ERROR, (_, data) => {
-      console.warn('HLS error', data.type, data.details, data.fatal);
       if (data.fatal) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          // Try once more via proxy as last resort
           hls.destroy();
           hls = new Hls();
           hls.loadSource(`${API}/api/proxy?url=${encodeURIComponent(url)}`);
@@ -579,13 +654,59 @@ $('player-back').addEventListener('click', () => {
   video.src = '';
   if (hls) { hls.destroy(); hls = null; }
   $('source-switcher').innerHTML = '';
+  _clearSubTracks();
 });
 
-// ─── Source switcher ──────────────────────────────────────
-let _currentAnimeCtx = null;
+// ─── Subtitle track menu ──────────────────────────────────
+function _clearSubTracks() {
+  $('sub-dropdown').innerHTML = '';
+  $('sub-select-btn').style.display = 'none';
+  $('sub-select').classList.remove('open');
+  $('sub-select-btn').classList.remove('on');
+}
 
+function _buildSubMenu(tracks) {
+  const btn = $('sub-select-btn');
+  const dd = $('sub-dropdown');
+  dd.innerHTML = '';
+  btn.style.display = '';
+
+  // "Off" option
+  const offBtn = document.createElement('button');
+  offBtn.className = 'sub-opt active';
+  offBtn.textContent = 'Off';
+  offBtn.addEventListener('click', () => {
+    if (hls) hls.subtitleTrack = -1;
+    btn.classList.remove('on');
+    dd.querySelectorAll('.sub-opt').forEach(b => b.classList.remove('active'));
+    offBtn.classList.add('active');
+    $('sub-select').classList.remove('open');
+  });
+  dd.appendChild(offBtn);
+
+  tracks.forEach((t, i) => {
+    const opt = document.createElement('button');
+    opt.className = 'sub-opt';
+    opt.textContent = t.name || t.lang || `Track ${i + 1}`;
+    opt.addEventListener('click', () => {
+      if (hls) hls.subtitleTrack = i;
+      btn.classList.add('on');
+      dd.querySelectorAll('.sub-opt').forEach(b => b.classList.remove('active'));
+      opt.classList.add('active');
+      $('sub-select').classList.remove('open');
+    });
+    dd.appendChild(opt);
+  });
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('sub-select').classList.toggle('open');
+  });
+  document.addEventListener('click', () => $('sub-select').classList.remove('open'), { once: false });
+}
+
+// ─── Source switcher ──────────────────────────────────────
 async function loadSourceSwitcher(anime, ep) {
-  _currentAnimeCtx = { anime, ep };
   const bar = $('source-switcher');
   bar.innerHTML = '<span style="color:#555;font-size:.75rem;padding:2px 4px">Loading sources…</span>';
 
@@ -593,12 +714,6 @@ async function loadSourceSwitcher(anime, ep) {
     const res = await fetch(`/api/sources?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}&ep=${ep}&dub=${dubMode}`);
     const data = await res.json();
     bar.innerHTML = '';
-
-    const SOURCE_LABELS = {
-      'Yt-mp4': 'Direct MP4', 'Fm-Hls': 'Filemoon', 'Sw': 'Streamwish',
-      'Vid-mp4': 'GogoAnime', 'Ok': 'OK.ru', 'S-mp4': 'Sharepoint',
-      'Luf-Mp4': 'HiAnime', 'Default': 'Wixmp', 'Vg': 'Vidguard', 'Mp4': 'Mp4Upload',
-    };
 
     for (const src of data.sources) {
       const btn = document.createElement('button');
