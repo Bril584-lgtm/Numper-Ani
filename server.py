@@ -6,7 +6,7 @@ import urllib.parse
 from pathlib import Path
 
 import httpx
-from fastapi import FastAPI, HTTPException, Query, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, StreamingResponse
 
@@ -103,34 +103,93 @@ async def api_stream(
     return result
 
 
+@app.get("/api/sources")
+async def api_sources(
+    source: str = Query(...),
+    id: str = Query(...),
+    ep: int = Query(..., ge=1),
+    dub: bool = False,
+):
+    """Return all raw source URLs for an episode so the UI can show a switcher."""
+    from sources import allanime
+    if source == "allanime":
+        srcs = await allanime.get_episode_sources(id, str(ep), dub=dub)
+        return {"sources": [{"name": s["name"], "url": s["url"], "stype": s.get("stype", "")} for s in srcs]}
+    return {"sources": []}
+
+
+@app.get("/api/resolve")
+async def api_resolve(embed_url: str = Query(...), name: str = Query(default="")):
+    """Resolve a single embed/clock URL to a playable stream."""
+    from sources import router as sr
+    from sources import allanime, playwright_extractor
+
+    url = embed_url
+    _CLOCK = ("/apivtwo/", "/clock")
+    _DIRECT_STREAM = (".m3u8", ".mp4")
+
+    # Direct mp4 file (Yt-mp4 / fast4speed) — serve via proxy for CORS
+    if "fast4speed" in url or (url.startswith("http") and any(url.endswith(x) for x in (".mp4",))):
+        return {"url": f"/api/proxy?url={urllib.parse.quote(url, safe='')}", "type": "mp4", "source": name}
+
+    if any(url.endswith(x) or x in url.split("?")[0] for x in _DIRECT_STREAM):
+        stream_type = "hls" if ".m3u8" in url else "mp4"
+        return {"url": url, "type": stream_type, "source": name}
+
+    if any(p in url for p in _CLOCK):
+        direct = await allanime.resolve_clock(url)
+        if direct:
+            return {"url": direct, "type": "hls" if ".m3u8" in direct else "mp4", "source": name}
+
+    # Embed URL — Playwright
+    try:
+        stream = await playwright_extractor.extract_stream(embed_url)
+        if stream:
+            return {"url": stream, "type": "hls" if ".m3u8" in stream else "mp4", "source": name}
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=502, detail=f"Could not resolve source: {name}")
+
+
 @app.get("/api/proxy")
-async def proxy_stream(url: str = Query(...)):
-    """Proxy any CDN URL through localhost — rewrites m3u8 playlists so all
-    sub-requests also flow through here (fixes HLS.js cross-origin errors)."""
-    is_m3u8 = ".m3u8" in url
+async def proxy_stream(url: str = Query(...), request: Request = None):
+    """Proxy any CDN URL — supports Range requests for seekable MP4 playback."""
+    from fastapi import Request
+
+    range_header = request.headers.get("range") if request else None
+    req_headers = {**_PROXY_HEADERS}
+    if range_header:
+        req_headers["Range"] = range_header
 
     async with httpx.AsyncClient(
-        headers=_PROXY_HEADERS, follow_redirects=True, timeout=20
+        headers=req_headers, follow_redirects=True, timeout=30
     ) as client:
         r = await client.get(url)
 
-    if is_m3u8 or "mpegurl" in r.headers.get("content-type", "").lower():
+    ctype = r.headers.get("content-type", "application/octet-stream")
+    resp_headers = {"Access-Control-Allow-Origin": "*"}
+
+    # Pass through range-response headers so browser can seek
+    for h in ("content-range", "accept-ranges", "content-length"):
+        if h in r.headers:
+            resp_headers[h] = r.headers[h]
+
+    if ".m3u8" in url or "mpegurl" in ctype.lower():
         rewritten = _rewrite_m3u8(r.text, url)
+        resp_headers["Cache-Control"] = "no-cache"
         return Response(
             content=rewritten.encode(),
             media_type="application/vnd.apple.mpegurl",
-            headers={
-                "Access-Control-Allow-Origin": "*",
-                "Cache-Control": "no-cache",
-            },
+            headers=resp_headers,
         )
 
-    # Binary (ts segments, mp4, keys)
-    ctype = r.headers.get("content-type", "application/octet-stream")
+    status_code = r.status_code  # 200 or 206 Partial Content
     return Response(
         content=r.content,
+        status_code=status_code,
         media_type=ctype,
-        headers={"Access-Control-Allow-Origin": "*"},
+        headers=resp_headers,
     )
 
 
