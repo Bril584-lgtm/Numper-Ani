@@ -84,6 +84,89 @@
     #history-section { margin-bottom: 28px; }
     #history-section h2 { font-size: 1rem; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
 
+    /* ─── Search loading overlay ─── */
+    #search-loading {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(14,14,18,0.92);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+    #search-loading.show { display: flex; }
+
+    /* Pixel art scene */
+    #pixel-scene {
+      position: relative;
+      width: 320px;
+      height: 80px;
+      image-rendering: pixelated;
+    }
+    /* Ground stripe */
+    #pixel-scene::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: repeating-linear-gradient(90deg, #f97316 0 8px, #fb923c 8px 16px);
+    }
+
+    /* Running cat — CSS pixel art sprite */
+    #run-cat {
+      position: absolute;
+      bottom: 6px;
+      left: -48px;
+      width: 32px;
+      height: 32px;
+      image-rendering: pixelated;
+      animation: catRun 2.8s linear infinite;
+    }
+    @keyframes catRun {
+      0%   { left: -48px; }
+      100% { left: 340px; }
+    }
+
+    /* Library building at the right */
+    #library-building {
+      position: absolute;
+      right: 0;
+      bottom: 6px;
+      width: 60px;
+      height: 60px;
+      image-rendering: pixelated;
+    }
+
+    /* Progress bar */
+    #search-progress-wrap {
+      width: 280px;
+      height: 12px;
+      background: var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+    #search-progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f97316, #fb923c);
+      border-radius: 6px;
+      transition: width 0.3s ease;
+      animation: progressPulse 1.4s ease-in-out infinite alternate;
+    }
+    @keyframes progressPulse {
+      from { filter: brightness(1); }
+      to   { filter: brightness(1.3); }
+    }
+    #search-loading-label {
+      color: var(--muted);
+      font-size: 0.875rem;
+      letter-spacing: 0.5px;
+    }
+
     /* ─── Empty ─── */
     .empty-state { text-align: center; padding: 60px 24px; color: var(--muted); }
     .empty-state .icon { font-size: 4rem; margin-bottom: 12px; }
@@ -173,6 +256,65 @@
   <div id="status"></div>
 </div>
 
+<!-- Search loading overlay -->
+<div id="search-loading">
+  <div id="pixel-scene">
+    <!-- Pixel cat running SVG -->
+    <svg id="run-cat" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" width="48" height="48">
+      <!-- Body -->
+      <rect x="8" y="14" width="16" height="10" fill="#f97316"/>
+      <!-- Head -->
+      <rect x="18" y="8" width="12" height="10" fill="#f97316"/>
+      <!-- Ears -->
+      <rect x="18" y="5" width="3" height="4" fill="#f97316"/>
+      <rect x="26" y="5" width="3" height="4" fill="#f97316"/>
+      <!-- Face -->
+      <rect x="20" y="11" width="2" height="2" fill="#1a1a2e"/>
+      <rect x="25" y="11" width="2" height="2" fill="#1a1a2e"/>
+      <!-- Glasses -->
+      <rect x="19" y="10" width="4" height="4" rx="1" fill="none" stroke="#333" stroke-width="1"/>
+      <rect x="24" y="10" width="4" height="4" rx="1" fill="none" stroke="#333" stroke-width="1"/>
+      <line x1="23" y1="12" x2="24" y2="12" stroke="#333" stroke-width="1"/>
+      <!-- Nose -->
+      <rect x="22" y="14" width="2" height="1" fill="#c2410c"/>
+      <!-- Book carried in arms -->
+      <rect x="4" y="15" width="6" height="8" fill="#1e3a8a"/>
+      <rect x="4" y="15" width="1" height="8" fill="#1e40af"/>
+      <rect x="5" y="15" width="5" height="8" fill="#3b82f6"/>
+      <!-- Legs (animated) -->
+      <rect class="leg-front" x="10" y="24" width="4" height="5" fill="#ea6f0a"/>
+      <rect class="leg-back"  x="18" y="24" width="4" height="5" fill="#ea6f0a"/>
+      <!-- Tail -->
+      <rect x="6" y="12" width="3" height="3" fill="#f97316"/>
+      <rect x="4" y="10" width="3" height="3" fill="#f97316"/>
+    </svg>
+
+    <!-- Library building pixel art -->
+    <svg id="library-building" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg">
+      <!-- Building -->
+      <rect x="4" y="20" width="52" height="40" fill="#1e293b"/>
+      <!-- Roof -->
+      <polygon points="0,22 30,4 60,22" fill="#0f172a"/>
+      <!-- Door -->
+      <rect x="22" y="40" width="16" height="20" fill="#312e81"/>
+      <!-- Windows -->
+      <rect x="8" y="28" width="10" height="8" fill="#fbbf24"/>
+      <rect x="42" y="28" width="10" height="8" fill="#fbbf24"/>
+      <!-- Sign -->
+      <rect x="14" y="24" width="32" height="6" fill="#f97316"/>
+      <rect x="16" y="25" width="4" height="4" fill="#fff"/>
+      <rect x="22" y="25" width="4" height="4" fill="#fff"/>
+      <rect x="28" y="25" width="4" height="4" fill="#fff"/>
+      <rect x="34" y="25" width="4" height="4" fill="#fff"/>
+    </svg>
+  </div>
+
+  <div id="search-progress-wrap">
+    <div id="search-progress-bar"></div>
+  </div>
+  <div id="search-loading-label">Searching all sources…</div>
+</div>
+
 <!-- Player overlay -->
 <div id="player-view">
   <div id="player-topbar">
@@ -213,21 +355,45 @@ $('dub-toggle').addEventListener('click', () => {
 $('search-btn').addEventListener('click', doSearch);
 $('search-input').addEventListener('keydown', e => e.key === 'Enter' && doSearch());
 
+function showSearchLoading(label = 'Searching all sources…') {
+  $('search-loading-label').textContent = label;
+  $('search-progress-bar').style.width = '0%';
+  $('search-loading').classList.add('show');
+  // Animate progress bar to ~85% during fetch, then snap to 100% on done
+  let pct = 0;
+  const interval = setInterval(() => {
+    pct = Math.min(pct + (Math.random() * 8 + 2), 85);
+    $('search-progress-bar').style.width = pct + '%';
+  }, 300);
+  return {
+    done() {
+      clearInterval(interval);
+      $('search-progress-bar').style.width = '100%';
+      setTimeout(() => $('search-loading').classList.remove('show'), 400);
+    },
+    fail() {
+      clearInterval(interval);
+      $('search-loading').classList.remove('show');
+    }
+  };
+}
+
 async function doSearch() {
   const q = $('search-input').value.trim();
   if (!q) return;
-  status('Searching…', true);
   hide($('home-view'));
   hide($('ep-panel'));
   show($('results-view'));
   $('results-grid').innerHTML = '';
 
+  const loader = showSearchLoading('Searching all sources…');
   try {
     const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&dub=${dubMode}`);
     const data = await res.json();
-    $('status').classList.remove('show');
+    loader.done();
     renderResults(data.results || []);
   } catch (e) {
+    loader.fail();
     status('Search failed: ' + e.message);
   }
 }
@@ -289,13 +455,8 @@ $('back-btn').addEventListener('click', () => {
 
 // ─── Playback ─────────────────────────────────────────────
 async function playEpisode(anime, ep) {
-  // Show player immediately with loading spinner
-  $('player-view').classList.add('open');
-  $('player-title').textContent = `${anime.title} · Ep ${ep}`;
-  $('player-src').textContent = 'Loading…';
-  show($('loading-overlay'));
-  hide($('error-msg'));
-  $('video').src = '';
+  // Show cat loader while fetching stream
+  const loader = showSearchLoading(`Finding stream for ${anime.title} Ep ${ep}…`);
 
   try {
     const res = await fetch(
@@ -307,7 +468,15 @@ async function playEpisode(anime, ep) {
       throw new Error(data.detail || data.error || 'Stream unavailable');
     }
 
+    loader.done();
+
+    // Open player after stream is resolved
+    $('player-view').classList.add('open');
+    $('player-title').textContent = `${anime.title} · Ep ${ep}`;
     $('player-src').textContent = data.source || '';
+    show($('loading-overlay'));
+    hide($('error-msg'));
+    $('video').src = '';
     loadStream(data.url, data.type);
 
     // Save to history
@@ -320,9 +489,8 @@ async function playEpisode(anime, ep) {
       })
     });
   } catch (e) {
-    hide($('loading-overlay'));
-    $('error-msg').innerHTML = `<b>⚠ Stream failed</b><br><small>${e.message}</small>`;
-    $('error-msg').style.display = 'flex';
+    loader.fail();
+    status('⚠ Stream failed: ' + e.message, true);
   }
 }
 

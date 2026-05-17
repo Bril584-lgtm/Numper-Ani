@@ -36,6 +36,18 @@ async def get_stream(source: str, show_id: str, ep: int, dub: bool = False) -> d
     return {"error": "Unknown source"}
 
 
+_CLOCK_PREFIXES = ("/apivtwo/", "/clock", "allanime.day/")
+_DIRECT_STREAM = (".m3u8", ".mp4", "cdnfile", "cdn.plyr", "storage.googleapis")
+
+
+def _is_clock_url(url: str) -> bool:
+    return any(p in url for p in _CLOCK_PREFIXES)
+
+
+def _is_direct_stream(url: str) -> bool:
+    return any(p in url for p in _DIRECT_STREAM)
+
+
 async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
     try:
         sources = await allanime.get_episode_sources(show_id, ep, dub=dub)
@@ -45,8 +57,8 @@ async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
     if not sources:
         return {"error": "No sources found on AllAnime"}
 
-    # Priority order: Default (wixmp, m3u8), Luf-Mp4 (HiAnime), then Filemoon, S-mp4
-    priority = ["Default", "Luf-Mp4", "Fm-mp4", "S-mp4", "Yt-mp4"]
+    # Priority: Filemoon/Vid-mp4 (reliable m3u8), then OK.ru, then others
+    priority = ["Default", "Vid-mp4", "Fm-mp4", "Luf-Mp4", "S-mp4", "Ok", "Yt-mp4"]
 
     def source_rank(s):
         try:
@@ -57,24 +69,39 @@ async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
     sources.sort(key=source_rank)
 
     for src in sources:
-        clock_path = src["url"]
-        if not clock_path:
+        url = src.get("url", "")
+        name = src.get("name", "unknown")
+        if not url:
             continue
 
-        # Try direct resolution first
-        direct = await allanime.resolve_clock(clock_path)
-        if direct:
-            stream_type = "hls" if ".m3u8" in direct else "mp4"
-            return {"url": direct, "type": stream_type, "source": f"allanime:{src['name']}"}
+        # If it's already a direct stream, serve it
+        if _is_direct_stream(url):
+            stream_type = "hls" if ".m3u8" in url else "mp4"
+            return {"url": url, "type": stream_type, "source": f"allanime:{name}"}
 
-        # Try Playwright for JS-protected embeds
-        try:
-            stream = await playwright_extractor.extract_from_allanime_source(clock_path)
-            if stream:
-                stream_type = "hls" if ".m3u8" in stream else "mp4"
-                return {"url": stream, "type": stream_type, "source": f"allanime:{src['name']} (playwright)"}
-        except Exception:
-            continue
+        # If it's a clock.json path, resolve via API
+        if _is_clock_url(url):
+            direct = await allanime.resolve_clock(url)
+            if direct:
+                stream_type = "hls" if ".m3u8" in direct else "mp4"
+                return {"url": direct, "type": stream_type, "source": f"allanime:{name}"}
+            # clock failed → try Playwright on it
+            try:
+                stream = await playwright_extractor.extract_from_allanime_source(url)
+                if stream:
+                    stream_type = "hls" if ".m3u8" in stream else "mp4"
+                    return {"url": stream, "type": stream_type, "source": f"allanime:{name} (pw)"}
+            except Exception:
+                continue
+        else:
+            # Embed URL (iframe): use Playwright to extract stream
+            try:
+                stream = await playwright_extractor.extract_stream(url)
+                if stream:
+                    stream_type = "hls" if ".m3u8" in stream else "mp4"
+                    return {"url": stream, "type": stream_type, "source": f"allanime:{name} (pw)"}
+            except Exception:
+                continue
 
     return {"error": "All AllAnime sources failed"}
 

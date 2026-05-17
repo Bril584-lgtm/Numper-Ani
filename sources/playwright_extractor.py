@@ -30,32 +30,30 @@ async def extract_stream(embed_url: str, timeout: int = 20000) -> str | None:
         browser = await pw.chromium.launch(headless=True)
         ctx = await browser.new_context(
             user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
-            extra_http_headers={"Referer": embed_url},
         )
         page = await ctx.new_page()
 
-        async def on_request(req):
+        def on_request(req):
             url = req.url
-            if _M3U8_RE.search(url) and "master" not in url.lower():
+            if ".m3u8" in url:
                 found.append(url)
-            elif ".m3u8" in url:
-                found.append(url)
-            elif _MP4_RE.search(url) and any(x in url for x in ["cdn", "storage", "media", "video"]):
+            elif _MP4_RE.search(url) and any(x in url for x in ["cdn", "storage", "media", "video", "edge"]):
                 found.append(url)
 
         page.on("request", on_request)
 
         try:
             await page.goto(embed_url, wait_until="domcontentloaded", timeout=timeout)
-            # Wait for network to settle or stream to appear
-            for _ in range(30):
-                if found:
-                    break
-                await asyncio.sleep(0.5)
         except Exception:
-            pass
-        finally:
-            await browser.close()
+            pass  # timeout is fine — requests may still fire
+
+        # Wait up to 20s for stream URL regardless of goto result
+        for _ in range(40):
+            if found:
+                break
+            await asyncio.sleep(0.5)
+
+        await browser.close()
 
     return found[0] if found else None
 

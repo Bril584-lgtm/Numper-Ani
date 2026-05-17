@@ -69,6 +69,29 @@ def _decrypt_tobeparsed(blob: str) -> list[dict]:
     except Exception:
         return []
 
+    # New format: sourceUrls contain direct embed URLs (not --hex encoded)
+    # Try JSON parse first
+    try:
+        data = json.loads(plain)
+        source_urls = (
+            data.get("episode", {}).get("sourceUrls", [])
+            or data.get("sourceUrls", [])
+        )
+        sources = []
+        for s in source_urls:
+            url = s.get("sourceUrl", "")
+            name = s.get("sourceName", "unknown")
+            stype = s.get("stype", "")
+            if url:
+                # Old hex-encoded format still used by some providers
+                if url.startswith("--"):
+                    url = _decode_hex_url(url[2:])
+                sources.append({"name": name, "url": url, "stype": stype})
+        return sources
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback: regex parse for old hex-encoded --url format
     sources = []
     for chunk in plain.replace("{", "\n").replace("}", "\n").split("\n"):
         m = re.search(r'"sourceUrl":"--([^"]+)".*?"sourceName":"([^"]+)"', chunk)
@@ -80,7 +103,7 @@ def _decrypt_tobeparsed(blob: str) -> list[dict]:
                 continue
         else:
             hex_url, name = m.group(1), m.group(2)
-        sources.append({"name": name, "url": _decode_hex_url(hex_url)})
+        sources.append({"name": name, "url": _decode_hex_url(hex_url), "stype": ""})
     return sources
 
 
@@ -152,18 +175,32 @@ async def get_episode_sources(show_id: str, ep: str, dub: bool = False) -> list[
 
     # Parse sourceUrls directly (non-encrypted fallback)
     sources = []
+    try:
+        parsed = r.json()
+        source_urls = (
+            parsed.get("data", {}).get("episode", {}).get("sourceUrls", [])
+            or parsed.get("episode", {}).get("sourceUrls", [])
+        )
+        for s in source_urls:
+            url = s.get("sourceUrl", "")
+            name = s.get("sourceName", "unknown")
+            stype = s.get("stype", "")
+            if url:
+                if url.startswith("--"):
+                    url = _decode_hex_url(url[2:])
+                sources.append({"name": name, "url": url, "stype": stype})
+        return sources
+    except Exception:
+        pass
+
     for chunk in resp_text.replace("{", "\n").replace("}", "\n").split("\n"):
-        m = re.search(r'"sourceUrl":"--([^"]+)".*?"sourceName":"([^"]+)"', chunk)
-        if not m:
-            m = re.search(r'"sourceName":"([^"]+)".*?"sourceUrl":"--([^"]+)"', chunk)
-            if m:
-                name, hex_url = m.group(1), m.group(2)
-            else:
-                continue
-        else:
-            hex_url, name = m.group(1), m.group(2)
-        clean = hex_url.replace("\\u002F", "/").replace("\\", "")
-        sources.append({"name": name, "url": _decode_hex_url(clean)})
+        m = re.search(r'"sourceUrl":"([^"]+)".*?"sourceName":"([^"]+)"', chunk)
+        if m:
+            url = m.group(1).replace("\\u002F", "/").replace("\\", "")
+            name = m.group(2)
+            if url.startswith("--"):
+                url = _decode_hex_url(url[2:])
+            sources.append({"name": name, "url": url, "stype": ""})
     return sources
 
 
