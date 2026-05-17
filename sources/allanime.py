@@ -116,7 +116,7 @@ async def _enrich_anilist_covers(results: list[dict]) -> None:
         title = r["title"].replace("\\", "\\\\").replace('"', '\\"')
         aliases.append(
             f'a{i}: Media(search: "{title}", type: ANIME) {{'
-            f'coverImage {{ extraLarge large }} genres format status averageScore'
+            f'coverImage {{ extraLarge large }} genres format status averageScore seasonYear'
             f'}}'
         )
     gql = "query {" + " ".join(aliases) + "}"
@@ -138,6 +138,7 @@ async def _enrich_anilist_covers(results: list[dict]) -> None:
             r["format"] = media.get("format") or ""
             r["status"] = media.get("status") or ""
             r["score"] = media.get("averageScore") or 0
+            r["year"] = media.get("seasonYear") or 0
     except Exception:
         pass  # keep AllAnime data if AniList is down
 

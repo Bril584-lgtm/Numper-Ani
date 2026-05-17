@@ -259,6 +259,8 @@
       <span class="filter-label">Sort</span>
       <select id="filter-sort" class="filter-select">
         <option value="default">Default</option>
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
         <option value="az">A → Z</option>
         <option value="za">Z → A</option>
         <option value="score">Highest Rated</option>
@@ -455,8 +457,10 @@ function applyFilters() {
     results = results.filter(r => [..._activeGenres].every(g => (r.genres || []).includes(g)));
 
   const sort = $('filter-sort').value;
-  if (sort === 'az')       results.sort((a, b) => a.title.localeCompare(b.title));
-  else if (sort === 'za')  results.sort((a, b) => b.title.localeCompare(a.title));
+  if (sort === 'newest')        results.sort((a, b) => (b.year || 0) - (a.year || 0));
+  else if (sort === 'oldest')   results.sort((a, b) => (a.year || 9999) - (b.year || 9999));
+  else if (sort === 'az')       results.sort((a, b) => a.title.localeCompare(b.title));
+  else if (sort === 'za')       results.sort((a, b) => b.title.localeCompare(a.title));
   else if (sort === 'score')    results.sort((a, b) => (b.score || 0) - (a.score || 0));
   else if (sort === 'episodes') results.sort((a, b) => (b.episodes || 0) - (a.episodes || 0));
 
