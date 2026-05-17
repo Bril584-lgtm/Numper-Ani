@@ -47,7 +47,9 @@
     #results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 18px; }
     .anime-card { border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); overflow: hidden; cursor: pointer; transition: transform .2s, border-color .2s; }
     .anime-card:hover { transform: translateY(-4px); border-color: var(--accent); }
-    .anime-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: var(--border); }
+    .anime-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; background: var(--border); display: block; }
+    .anime-card .card-thumb-placeholder { width: 100%; aspect-ratio: 2/3; background: linear-gradient(135deg, #1e1e2e 0%, #2a2a3a 100%); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
+
     .anime-card .card-info { padding: 10px; }
     .anime-card .card-title { font-size: .85rem; font-weight: 600; line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
     .anime-card .card-meta { font-size: .75rem; color: var(--muted); }
@@ -409,8 +411,11 @@ function renderResults(results) {
   for (const r of results) {
     const card = document.createElement('div');
     card.className = 'anime-card';
+    const thumbHtml = r.thumb
+      ? `<img src="${r.thumb}" alt="${r.title}" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-placeholder\\'>🐱</div>'">`
+      : `<div class="card-thumb-placeholder">🐱</div>`;
     card.innerHTML = `
-      <img src="${r.thumb || ''}" alt="${r.title}" onerror="this.style.display='none'"/>
+      ${thumbHtml}
       <div class="card-info">
         <div class="card-title">${r.title}</div>
         <div class="card-meta">${r.episodes ? r.episodes + ' eps' : ''}</div>
@@ -564,8 +569,11 @@ async function loadHistory() {
   for (const e of entries.slice(-12).reverse()) {
     const card = document.createElement('div');
     card.className = 'anime-card';
+    const hThumb = e.thumb
+      ? `<img src="${e.thumb}" alt="${e.title}" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-placeholder\\'>🐱</div>'">`
+      : `<div class="card-thumb-placeholder">🐱</div>`;
     card.innerHTML = `
-      <img src="${e.thumb || ''}" alt="${e.title}" onerror="this.style.display='none'"/>
+      ${hThumb}
       <div class="card-info">
         <div class="card-title">${e.title}</div>
         <div class="card-meta">Ep ${e.ep} · ${e.dub ? 'DUB' : 'SUB'}</div>

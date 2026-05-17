@@ -1,4 +1,4 @@
-"""HiAnime (Zoro) source backend."""
+"""HiAnime (Zoro) source backend — DISABLED: site shut down May 2026."""
 import re
 import httpx
 
@@ -7,8 +7,12 @@ API = "https://hianime.to/ajax"
 AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0"
 HEADERS = {"User-Agent": AGENT, "Referer": BASE, "X-Requested-With": "XMLHttpRequest"}
 
+_OFFLINE = True
+
 
 async def search(query: str, dub: bool = False) -> list[dict]:
+    if _OFFLINE:
+        return []
     async with httpx.AsyncClient(headers=HEADERS, timeout=15, follow_redirects=True) as client:
         r = await client.get(f"{BASE}/search", params={"keyword": query})
         html = r.text

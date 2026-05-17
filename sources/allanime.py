@@ -38,7 +38,7 @@ SEARCH_GQL = (
     "query($search:SearchInput $limit:Int $page:Int $translationType:VaildTranslationTypeEnumType"
     " $countryOrigin:VaildCountryOriginEnumType){"
     "shows(search:$search limit:$limit page:$page translationType:$translationType"
-    " countryOrigin:$countryOrigin){edges{_id name availableEpisodes __typename}}}"
+    " countryOrigin:$countryOrigin){edges{_id name availableEpisodes thumbnail thumbnails __typename}}}"
 )
 
 EPISODE_GQL = (
@@ -127,10 +127,14 @@ async def search(query: str, dub: bool = False) -> list[dict]:
     for edge in data.get("data", {}).get("shows", {}).get("edges", []):
         ep_count = edge.get("availableEpisodes", {}).get(mode, 0)
         if ep_count:
+            # Prefer larger thumbnail from thumbnails list, fall back to thumbnail field
+            thumbs = edge.get("thumbnails") or []
+            thumb = thumbs[-1] if thumbs else edge.get("thumbnail", "")
             results.append({
                 "id": edge["_id"],
                 "title": edge["name"],
                 "episodes": ep_count,
+                "thumb": thumb,
                 "source": "allanime",
             })
     return results
