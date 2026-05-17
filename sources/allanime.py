@@ -108,15 +108,16 @@ def _decrypt_tobeparsed(blob: str) -> list[dict]:
 
 
 async def _enrich_anilist_covers(results: list[dict]) -> None:
-    """Replace thumbnails with AniList official cover art (in-place)."""
+    """Enrich results with AniList cover art, genres, format, status, score (in-place)."""
     if not results:
         return
-    # Build aliased batch query — one HTTP call for all titles
     aliases = []
     for i, r in enumerate(results):
         title = r["title"].replace("\\", "\\\\").replace('"', '\\"')
         aliases.append(
-            f'a{i}: Media(search: "{title}", type: ANIME) {{ coverImage {{ extraLarge large }} }}'
+            f'a{i}: Media(search: "{title}", type: ANIME) {{'
+            f'coverImage {{ extraLarge large }} genres format status averageScore'
+            f'}}'
         )
     gql = "query {" + " ".join(aliases) + "}"
     try:
@@ -129,12 +130,16 @@ async def _enrich_anilist_covers(results: list[dict]) -> None:
             data = resp.json().get("data") or {}
         for i, r in enumerate(results):
             media = data.get(f"a{i}") or {}
-            cover = (media.get("coverImage") or {})
+            cover = media.get("coverImage") or {}
             img = cover.get("extraLarge") or cover.get("large")
             if img:
                 r["thumb"] = img
+            r["genres"] = media.get("genres") or []
+            r["format"] = media.get("format") or ""
+            r["status"] = media.get("status") or ""
+            r["score"] = media.get("averageScore") or 0
     except Exception:
-        pass  # keep AllAnime thumbs if AniList is down
+        pass  # keep AllAnime data if AniList is down
 
 
 async def search(query: str, dub: bool = False) -> list[dict]:
