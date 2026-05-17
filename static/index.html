@@ -605,20 +605,41 @@ async function openAnime(anime) {
   currentAnime = anime;
   hide($('results-view'));
   $('ep-panel').style.display = '';
+
   $('ep-panel').classList.add('open');
 
   $('ep-title').textContent = anime.title;
   $('ep-meta').textContent = `${anime.episodes || '?'} episodes · ${anime.source} · ${dubMode ? 'DUB' : 'SUB'}`;
   if (anime.thumb) $('ep-thumb').src = anime.thumb;
 
-  const epCount = anime.episodes || 0;
-  const grid = $('ep-grid');
-  grid.innerHTML = '';
-
   const history = await fetchHistory();
   const key = `${anime.source}:${anime.id}`;
   const savedEp = history[key]?.ep || 0;
 
+  // For GogoAnime results, episode count may be 0 — fetch it
+  let epCount = anime.episodes || 0;
+  if (!epCount && anime.source === 'gogoanime') {
+    fetch(`/api/episodes?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.count > 0) {
+          anime.episodes = d.count;
+          $('ep-meta').textContent = `${d.count} episodes · ${anime.source} · ${dubMode ? 'DUB' : 'SUB'}`;
+          const grid = $('ep-grid');
+          grid.innerHTML = '';
+          for (let i = 1; i <= d.count; i++) {
+            const btn = document.createElement('button');
+            btn.className = 'ep-btn' + (i === savedEp ? ' current' : '');
+            btn.textContent = i;
+            btn.addEventListener('click', () => playEpisode(anime, i));
+            grid.appendChild(btn);
+          }
+        }
+      }).catch(() => {});
+  }
+
+  const grid = $('ep-grid');
+  grid.innerHTML = '';
   for (let i = 1; i <= epCount || i <= 1; i++) {
     const btn = document.createElement('button');
     btn.className = 'ep-btn' + (i === savedEp ? ' current' : '');
@@ -627,6 +648,11 @@ async function openAnime(anime) {
     grid.appendChild(btn);
     if (!epCount) break;
   }
+
+  // Pre-warm stream cache for the most likely episode (fire-and-forget)
+  const warmEp = savedEp || 1;
+  fetch(`${API}/api/stream?source=${encodeURIComponent(anime.source)}&id=${encodeURIComponent(anime.id)}&ep=${warmEp}&dub=${dubMode}`)
+    .catch(() => {});
 }
 
 $('back-btn').addEventListener('click', () => {
@@ -651,6 +677,7 @@ function _openPlayer(anime, ep, streamData) {
   $('video').src = '';
   loadStream(streamData.url, streamData.type);
   loadSourceSwitcher(anime, ep);
+  autoLoadSubtitles(anime.title, ep);
   fetch('/api/history', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -931,6 +958,35 @@ async function loadHistory() {
     });
     grid.appendChild(card);
   }
+}
+
+// ─── Auto subtitles ───────────────────────────────────────
+async function autoLoadSubtitles(title, ep) {
+  // Skip if user already loaded a manual subtitle file
+  if (ccTrack.src && ccTrack.src.startsWith('blob:')) return;
+  try {
+    const res = await fetch(`/api/subtitles?title=${encodeURIComponent(title)}&ep=${ep}`);
+    const data = await res.json();
+    const subs = data.subtitles || [];
+    if (!subs.length) return;
+
+    // Prefer English srt/vtt, fall back to first available
+    const pick = subs.find(s => /eng|en[._-]/i.test(s.name)) || subs[0];
+
+    // Fetch the subtitle file through our proxy to avoid CORS
+    const subRes = await fetch(`/api/proxy?url=${encodeURIComponent(pick.url)}`);
+    let text = await subRes.text();
+    if (pick.name.endsWith('.srt')) text = srtToVtt(text);
+    if (pick.name.endsWith('.ass') || pick.name.endsWith('.ssa')) return; // ASS not supported natively
+
+    const blob = new Blob([text], { type: 'text/vtt' });
+    const oldUrl = ccTrack.src;
+    ccTrack.src = URL.createObjectURL(blob);
+    if (oldUrl?.startsWith('blob:')) URL.revokeObjectURL(oldUrl);
+    ccTrack.track.mode = 'showing';
+    ccBtn.classList.add('on');
+    ccBtn.title = `Subtitles: ${pick.name} — click to toggle`;
+  } catch (_) {}
 }
 
 // ─── Captions ─────────────────────────────────────────────

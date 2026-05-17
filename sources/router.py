@@ -1,27 +1,30 @@
-"""Source router — tries AllAnime first, then HiAnime, with auto-fallback."""
+"""Source router — AllAnime primary, GogoAnime independent fallback."""
 import asyncio
-from . import allanime, hianime, playwright_extractor
+from . import allanime, hianime, gogoanime, playwright_extractor
 
 
 async def search_all(query: str, dub: bool = False) -> list[dict]:
-    results_aa, results_hi = await asyncio.gather(
+    results_aa, results_hi, results_gogo = await asyncio.gather(
         allanime.search(query, dub=dub),
         hianime.search(query, dub=dub),
+        gogoanime.search(query, dub=dub),
         return_exceptions=True,
     )
     seen_titles = set()
     merged = []
-    for r in (results_aa if not isinstance(results_aa, Exception) else []):
-        key = r["title"].lower()
-        if key not in seen_titles:
-            seen_titles.add(key)
-            merged.append(r)
-    for r in (results_hi if not isinstance(results_hi, Exception) else []):
-        key = r["title"].lower()
-        if key not in seen_titles:
-            seen_titles.add(key)
-            merged.append(r)
+    for bucket in [results_aa, results_hi, results_gogo]:
+        for r in (bucket if not isinstance(bucket, Exception) else []):
+            key = r["title"].lower().strip()
+            if key not in seen_titles:
+                seen_titles.add(key)
+                merged.append(r)
     return merged
+
+
+async def get_episode_count(source: str, show_id: str) -> int:
+    if source == "gogoanime":
+        return await gogoanime.get_episode_count(show_id)
+    return 0
 
 
 async def get_stream(source: str, show_id: str, ep: int, dub: bool = False) -> dict:
@@ -31,6 +34,8 @@ async def get_stream(source: str, show_id: str, ep: int, dub: bool = False) -> d
     """
     if source == "allanime":
         return await _resolve_allanime(show_id, str(ep), dub)
+    elif source == "gogoanime":
+        return await gogoanime.get_stream(show_id, ep, dub=dub)
     elif source == "hianime":
         return await _resolve_hianime(show_id, ep, dub)
     return {"error": "Unknown source"}

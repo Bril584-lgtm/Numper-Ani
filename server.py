@@ -193,6 +193,20 @@ async def proxy_stream(url: str = Query(...), request: Request = None):
     )
 
 
+@app.get("/api/subtitles")
+async def api_subtitles(title: str = Query(...), ep: int = Query(..., ge=1)):
+    from sources.subtitles import fetch as fetch_subs
+    subs = await fetch_subs(title, ep)
+    return {"subtitles": subs}
+
+
+@app.get("/api/episodes")
+async def api_episodes(source: str = Query(...), id: str = Query(...)):
+    from sources import router as sr
+    count = await sr.get_episode_count(source, id)
+    return {"count": count}
+
+
 @app.get("/api/history")
 async def get_history():
     return _load_history()
