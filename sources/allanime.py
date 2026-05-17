@@ -107,6 +107,36 @@ def _decrypt_tobeparsed(blob: str) -> list[dict]:
     return sources
 
 
+async def _enrich_anilist_covers(results: list[dict]) -> None:
+    """Replace thumbnails with AniList official cover art (in-place)."""
+    if not results:
+        return
+    # Build aliased batch query — one HTTP call for all titles
+    aliases = []
+    for i, r in enumerate(results):
+        title = r["title"].replace("\\", "\\\\").replace('"', '\\"')
+        aliases.append(
+            f'a{i}: Media(search: "{title}", type: ANIME) {{ coverImage {{ extraLarge large }} }}'
+        )
+    gql = "query {" + " ".join(aliases) + "}"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                "https://graphql.anilist.co",
+                json={"query": gql},
+                headers={"Content-Type": "application/json", "Accept": "application/json"},
+            )
+            data = resp.json().get("data") or {}
+        for i, r in enumerate(results):
+            media = data.get(f"a{i}") or {}
+            cover = (media.get("coverImage") or {})
+            img = cover.get("extraLarge") or cover.get("large")
+            if img:
+                r["thumb"] = img
+    except Exception:
+        pass  # keep AllAnime thumbs if AniList is down
+
+
 async def search(query: str, dub: bool = False) -> list[dict]:
     mode = "dub" if dub else "sub"
     variables = {
@@ -127,9 +157,7 @@ async def search(query: str, dub: bool = False) -> list[dict]:
     for edge in data.get("data", {}).get("shows", {}).get("edges", []):
         ep_count = edge.get("availableEpisodes", {}).get(mode, 0)
         if ep_count:
-            # Prefer larger thumbnail from thumbnails list, fall back to thumbnail field
-            thumbs = edge.get("thumbnails") or []
-            thumb = thumbs[-1] if thumbs else edge.get("thumbnail", "")
+            thumb = edge.get("thumbnail", "")
             results.append({
                 "id": edge["_id"],
                 "title": edge["name"],
@@ -137,6 +165,8 @@ async def search(query: str, dub: bool = False) -> list[dict]:
                 "thumb": thumb,
                 "source": "allanime",
             })
+
+    await _enrich_anilist_covers(results)
     return results
 
 
