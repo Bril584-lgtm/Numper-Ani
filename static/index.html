@@ -451,10 +451,11 @@ function applyFilters() {
 
   const fmt = $('filter-format').value;
   const st  = $('filter-status').value;
-  if (fmt) results = results.filter(r => r.format === fmt);
-  if (st)  results = results.filter(r => r.status === st);
+  // Only exclude results where we *know* the value doesn't match — unknown = keep
+  if (fmt) results = results.filter(r => !r.format || r.format === fmt);
+  if (st)  results = results.filter(r => !r.status || r.status === st);
   if (_activeGenres.size)
-    results = results.filter(r => [..._activeGenres].every(g => (r.genres || []).includes(g)));
+    results = results.filter(r => !(r.genres?.length) || [..._activeGenres].every(g => r.genres.includes(g)));
 
   const sort = $('filter-sort').value;
   if (sort === 'newest')        results.sort((a, b) => (b.year || 0) - (a.year || 0));
@@ -578,12 +579,14 @@ function renderResults(results) {
     const thumbHtml = r.thumb
       ? `<img src="${r.thumb}" alt="${r.title}" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-placeholder\\'>🐱</div>'">`
       : `<div class="card-thumb-placeholder">🐱</div>`;
+    const yearBadge = r.year ? `<span class="source-badge">${r.year}</span>` : '';
+    const fmtBadge = r.format ? `<span class="source-badge">${r.format}</span>` : '';
     card.innerHTML = `
       ${thumbHtml}
       <div class="card-info">
         <div class="card-title">${r.title}</div>
         <div class="card-meta">${r.episodes ? r.episodes + ' eps' : ''}</div>
-        <span class="source-badge">${r.source}</span>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${yearBadge}${fmtBadge}</div>
       </div>`;
     card.addEventListener('click', () => openAnime(r));
     grid.appendChild(card);

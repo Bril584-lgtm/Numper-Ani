@@ -120,8 +120,15 @@ query ($search: String) {
 """
 
 
-def _normalize(t: str) -> str:
-    return re.sub(r"[^a-z0-9]", "", t.lower())
+def _words(t: str) -> set[str]:
+    """Lowercase words, strip punctuation, ignore 1-char tokens."""
+    return {w for w in re.sub(r"[^a-z0-9 ]", " ", t.lower()).split() if len(w) > 1}
+
+
+def _jaccard(a: set, b: set) -> float:
+    if not a or not b:
+        return 0.0
+    return len(a & b) / len(a | b)
 
 
 async def _enrich_anilist_covers(results: list[dict], query: str = "") -> None:
@@ -139,34 +146,43 @@ async def _enrich_anilist_covers(results: list[dict], query: str = "") -> None:
             page = (resp.json().get("data") or {}).get("Page") or {}
             media_list = page.get("media") or []
 
-        # Build lookup: normalized title → media entry
-        lookup: dict[str, dict] = {}
+        # Build lookup: all title variants → (words_set, media)
+        candidates: list[tuple[set, dict]] = []
         for m in media_list:
             titles = m.get("title") or {}
+            title_words: set[str] = set()
             for t in [titles.get("romaji"), titles.get("english"), titles.get("native")]:
                 if t:
-                    lookup[_normalize(t)] = m
+                    title_words |= _words(t)
+            if title_words:
+                candidates.append((title_words, m))
 
         for r in results:
-            key = _normalize(r["title"])
-            media = lookup.get(key)
-            if not media:
-                # Partial match fallback
-                for k, v in lookup.items():
-                    if key and (key in k or k in key):
-                        media = v
-                        break
-            if not media:
+            key_words = _words(r["title"])
+            if not key_words:
                 continue
-            cover = media.get("coverImage") or {}
+
+            best_score = 0.0
+            best_media = None
+            for cand_words, m in candidates:
+                score = _jaccard(key_words, cand_words)
+                if score > best_score:
+                    best_score = score
+                    best_media = m
+
+            # Require at least 40% word overlap to avoid false matches
+            if best_score < 0.4 or best_media is None:
+                continue
+
+            cover = best_media.get("coverImage") or {}
             img = cover.get("extraLarge") or cover.get("large")
             if img:
                 r["thumb"] = img
-            r["genres"] = media.get("genres") or []
-            r["format"] = media.get("format") or ""
-            r["status"] = media.get("status") or ""
-            r["score"] = media.get("averageScore") or 0
-            r["year"] = media.get("seasonYear") or 0
+            r["genres"] = best_media.get("genres") or []
+            r["format"] = best_media.get("format") or ""
+            r["status"] = best_media.get("status") or ""
+            r["score"] = best_media.get("averageScore") or 0
+            r["year"] = best_media.get("seasonYear") or 0
     except Exception:
         pass  # keep AllAnime data if AniList is down
 
