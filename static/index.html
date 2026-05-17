@@ -382,7 +382,8 @@ async function doSearch() {
   const q = $('search-input').value.trim();
   if (!q) return;
   hide($('home-view'));
-  hide($('ep-panel'));
+  $('ep-panel').classList.remove('open');
+  $('ep-panel').style.display = '';
   show($('results-view'));
   $('results-grid').innerHTML = '';
 
@@ -424,6 +425,7 @@ function renderResults(results) {
 async function openAnime(anime) {
   currentAnime = anime;
   hide($('results-view'));
+  $('ep-panel').style.display = '';
   $('ep-panel').classList.add('open');
 
   $('ep-title').textContent = anime.title;
