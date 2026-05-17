@@ -503,13 +503,14 @@ async function playEpisode(anime, ep) {
 
 function loadStream(url, type) {
   const video = $('video');
-
   if (hls) { hls.destroy(); hls = null; }
 
+  // Always go through proxy — it rewrites m3u8 segment URLs so HLS.js
+  // never makes cross-origin requests to the CDN directly.
   const proxyUrl = `${API}/api/proxy?url=${encodeURIComponent(url)}`;
 
   if (type === 'hls' && Hls.isSupported()) {
-    hls = new Hls({ enableWorker: true, lowLatencyMode: false });
+    hls = new Hls({ enableWorker: true, lowLatencyMode: false, maxBufferLength: 30 });
     hls.loadSource(proxyUrl);
     hls.attachMedia(video);
     hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -518,24 +519,20 @@ function loadStream(url, type) {
     });
     hls.on(Hls.Events.ERROR, (_, data) => {
       if (data.fatal) {
-        // Try direct URL without proxy
-        hls.destroy();
-        video.src = url;
-        video.play().then(() => hide($('loading-overlay'))).catch(() => {
-          $('error-msg').innerHTML = '<b>⚠ Playback failed</b><br><small>Source may be geo-blocked or expired.</small>';
-          $('error-msg').style.display = 'flex';
-          hide($('loading-overlay'));
-        });
+        hide($('loading-overlay'));
+        $('error-msg').innerHTML = '<b>⚠ Stream error</b><br><small>The source may have expired — click the episode again to reload.</small>';
+        $('error-msg').style.display = 'flex';
       }
     });
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    // Safari native HLS — can load CDN directly
     video.src = url;
     video.addEventListener('loadeddata', () => hide($('loading-overlay')), {once: true});
     video.play();
   } else {
     video.src = proxyUrl;
     video.addEventListener('loadeddata', () => hide($('loading-overlay')), {once: true});
-    video.play().catch(() => { video.src = url; video.play(); });
+    video.play();
   }
 }
 
