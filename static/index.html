@@ -505,34 +505,50 @@ function loadStream(url, type) {
   const video = $('video');
   if (hls) { hls.destroy(); hls = null; }
 
-  // Always go through proxy — it rewrites m3u8 segment URLs so HLS.js
-  // never makes cross-origin requests to the CDN directly.
-  const proxyUrl = `${API}/api/proxy?url=${encodeURIComponent(url)}`;
+  function onReady() {
+    hide($('loading-overlay'));
+    video.play().catch(() => {
+      // Autoplay blocked — video is ready, user can hit play manually
+      hide($('loading-overlay'));
+    });
+  }
+
+  function onFatal(detail) {
+    hide($('loading-overlay'));
+    $('error-msg').innerHTML = `<b>⚠ Stream error</b><br><small>${detail || 'Click the episode again to retry.'}</small>`;
+    $('error-msg').style.display = 'flex';
+  }
 
   if (type === 'hls' && Hls.isSupported()) {
+    // CDN has CORS:* — load directly, no proxy needed
     hls = new Hls({ enableWorker: true, lowLatencyMode: false, maxBufferLength: 30 });
-    hls.loadSource(proxyUrl);
+    hls.loadSource(url);
     hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, () => {
-      hide($('loading-overlay'));
-      video.play();
-    });
+    hls.on(Hls.Events.MANIFEST_PARSED, onReady);
     hls.on(Hls.Events.ERROR, (_, data) => {
+      console.warn('HLS error', data.type, data.details, data.fatal);
       if (data.fatal) {
-        hide($('loading-overlay'));
-        $('error-msg').innerHTML = '<b>⚠ Stream error</b><br><small>The source may have expired — click the episode again to reload.</small>';
-        $('error-msg').style.display = 'flex';
+        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+          // Try once more via proxy as last resort
+          hls.destroy();
+          hls = new Hls();
+          hls.loadSource(`${API}/api/proxy?url=${encodeURIComponent(url)}`);
+          hls.attachMedia(video);
+          hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+          hls.on(Hls.Events.ERROR, (__, d) => { if (d.fatal) onFatal(d.details); });
+        } else {
+          onFatal(data.details);
+        }
       }
     });
   } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    // Safari native HLS — can load CDN directly
     video.src = url;
-    video.addEventListener('loadeddata', () => hide($('loading-overlay')), {once: true});
-    video.play();
+    video.addEventListener('loadeddata', onReady, {once: true});
+    video.addEventListener('error', () => onFatal(''), {once: true});
   } else {
-    video.src = proxyUrl;
-    video.addEventListener('loadeddata', () => hide($('loading-overlay')), {once: true});
-    video.play();
+    video.src = url;
+    video.addEventListener('loadeddata', onReady, {once: true});
+    video.addEventListener('error', () => onFatal(''), {once: true});
   }
 }
 
