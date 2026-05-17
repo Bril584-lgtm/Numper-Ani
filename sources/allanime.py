@@ -107,29 +107,57 @@ def _decrypt_tobeparsed(blob: str) -> list[dict]:
     return sources
 
 
-async def _enrich_anilist_covers(results: list[dict]) -> None:
+_ANILIST_GQL = """
+query ($search: String) {
+  Page(page: 1, perPage: 50) {
+    media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
+      title { romaji english native }
+      coverImage { extraLarge large }
+      genres format status averageScore seasonYear
+    }
+  }
+}
+"""
+
+
+def _normalize(t: str) -> str:
+    return re.sub(r"[^a-z0-9]", "", t.lower())
+
+
+async def _enrich_anilist_covers(results: list[dict], query: str = "") -> None:
     """Enrich results with AniList cover art, genres, format, status, score (in-place)."""
     if not results:
         return
-    aliases = []
-    for i, r in enumerate(results):
-        title = r["title"].replace("\\", "\\\\").replace('"', '\\"')
-        aliases.append(
-            f'a{i}: Media(search: "{title}", type: ANIME) {{'
-            f'coverImage {{ extraLarge large }} genres format status averageScore seasonYear'
-            f'}}'
-        )
-    gql = "query {" + " ".join(aliases) + "}"
+    search_term = query or results[0]["title"]
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(
                 "https://graphql.anilist.co",
-                json={"query": gql},
+                json={"query": _ANILIST_GQL, "variables": {"search": search_term}},
                 headers={"Content-Type": "application/json", "Accept": "application/json"},
             )
-            data = resp.json().get("data") or {}
-        for i, r in enumerate(results):
-            media = data.get(f"a{i}") or {}
+            page = (resp.json().get("data") or {}).get("Page") or {}
+            media_list = page.get("media") or []
+
+        # Build lookup: normalized title → media entry
+        lookup: dict[str, dict] = {}
+        for m in media_list:
+            titles = m.get("title") or {}
+            for t in [titles.get("romaji"), titles.get("english"), titles.get("native")]:
+                if t:
+                    lookup[_normalize(t)] = m
+
+        for r in results:
+            key = _normalize(r["title"])
+            media = lookup.get(key)
+            if not media:
+                # Partial match fallback
+                for k, v in lookup.items():
+                    if key and (key in k or k in key):
+                        media = v
+                        break
+            if not media:
+                continue
             cover = media.get("coverImage") or {}
             img = cover.get("extraLarge") or cover.get("large")
             if img:
@@ -172,7 +200,7 @@ async def search(query: str, dub: bool = False) -> list[dict]:
                 "source": "allanime",
             })
 
-    await _enrich_anilist_covers(results)
+    await _enrich_anilist_covers(results, query)
     return results
 
 
