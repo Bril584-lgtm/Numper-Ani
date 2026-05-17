@@ -362,6 +362,11 @@ $('dub-toggle').addEventListener('click', () => {
   dubMode = !dubMode;
   $('dub-toggle').classList.toggle('active', dubMode);
   $('dub-toggle').textContent = dubMode ? '🎙 DUB ✓' : '🎙 DUB';
+  // Re-run search immediately if results are already showing
+  const hasQuery = $('search-input').value.trim();
+  const resultsVisible = $('results-view').style.display !== 'none';
+  const epVisible = $('ep-panel').classList.contains('open');
+  if (hasQuery && (resultsVisible || epVisible)) doSearch();
 });
 
 // ─── Search ───────────────────────────────────────────────
