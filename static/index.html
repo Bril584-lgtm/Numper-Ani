@@ -78,6 +78,13 @@
     #player-src { color: var(--muted); font-size: .75rem; white-space: nowrap; }
     #cc-btn { border: 1px solid #444; background: none; color: #ccc; padding: 3px 9px; border-radius: 5px; font-size: .75rem; cursor: pointer; transition: all .15s; }
     #cc-btn.on { border-color: var(--accent); color: var(--accent); }
+    #next-ep-btn { border: 1px solid #444; background: none; color: #ccc; padding: 3px 10px; border-radius: 5px; font-size: .75rem; cursor: pointer; transition: all .15s; white-space: nowrap; }
+    #next-ep-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #next-ep-btn:disabled { opacity: 0.3; cursor: default; }
+    .skip-btn { position: absolute; bottom: 60px; right: 20px; padding: 8px 18px; border-radius: 6px; border: 2px solid #fff; background: rgba(0,0,0,0.6); color: #fff; font-size: .9rem; font-weight: 600; cursor: pointer; display: none; z-index: 8; transition: background .15s; backdrop-filter: blur(4px); }
+    .skip-btn:hover { background: rgba(249,115,22,0.8); border-color: var(--accent); }
+    #skip-intro-btn { bottom: 60px; }
+    #skip-recap-btn { bottom: 108px; }
     #sub-select { position: relative; }
     #sub-select-btn { border: 1px solid #444; background: none; color: #ccc; padding: 3px 9px; border-radius: 5px; font-size: .75rem; cursor: pointer; transition: all .15s; }
     #sub-select-btn.on { border-color: var(--accent); color: var(--accent); }
@@ -409,11 +416,14 @@
       <div id="sub-dropdown"></div>
     </div>
     <button id="cc-btn" title="Toggle captions" style="display:none">CC</button>
+    <button id="next-ep-btn" title="Next episode" style="display:none">Next ▶</button>
   </div>
   <div id="source-switcher"></div>
   <div id="player-video-wrap">
     <div id="loading-overlay"><div class="spinner"></div></div>
     <div id="error-msg"></div>
+    <button class="skip-btn" id="skip-recap-btn">⏩ Skip Recap</button>
+    <button class="skip-btn" id="skip-intro-btn">⏩ Skip Intro</button>
     <video id="video" controls autoplay crossorigin="anonymous">
       <track id="cc-track" kind="subtitles" srclang="en" label="English" default/>
     </video>
@@ -424,9 +434,11 @@
 const API = '';
 let dubMode = false;
 let currentAnime = null;
+let currentEp = 1;
 let hls = null;
 let _allResults = [];
 let _activeGenres = new Set();
+let _skipTimes = {}; // { op: {start, end}, recap: {start, end} }
 
 // ─── UI helpers ───────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -668,6 +680,7 @@ const SOURCE_LABELS = {
 };
 
 function _openPlayer(anime, ep, streamData) {
+  currentEp = ep;
   $('player-view').classList.add('open');
   showCcBtn();
   $('player-title').textContent = `${anime.title} · Ep ${ep}`;
@@ -675,9 +688,15 @@ function _openPlayer(anime, ep, streamData) {
   show($('loading-overlay'));
   hide($('error-msg'));
   $('video').src = '';
+  // Next episode button
+  const maxEp = anime.episodes || 0;
+  const nextBtn = $('next-ep-btn');
+  nextBtn.style.display = '';
+  nextBtn.disabled = maxEp > 0 && ep >= maxEp;
   loadStream(streamData.url, streamData.type);
   loadSourceSwitcher(anime, ep);
   autoLoadSubtitles(anime.title, ep);
+  loadSkipTimes(anime.mal_id || 0, ep);
   fetch('/api/history', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -821,6 +840,37 @@ $('player-back').addEventListener('click', () => {
   if (hls) { hls.destroy(); hls = null; }
   $('source-switcher').innerHTML = '';
   _clearSubTracks();
+  _skipTimes = {};
+  $('skip-intro-btn').style.display = 'none';
+  $('skip-recap-btn').style.display = 'none';
+  $('next-ep-btn').style.display = 'none';
+});
+
+$('next-ep-btn').addEventListener('click', () => {
+  if (currentAnime) playEpisode(currentAnime, currentEp + 1);
+});
+
+$('skip-intro-btn').addEventListener('click', () => {
+  if (_skipTimes.op) $('video').currentTime = _skipTimes.op.end;
+});
+
+$('skip-recap-btn').addEventListener('click', () => {
+  if (_skipTimes.recap) $('video').currentTime = _skipTimes.recap.end;
+});
+
+// Show/hide skip buttons based on video time
+$('video').addEventListener('timeupdate', () => {
+  const t = $('video').currentTime;
+  const introBtn = $('skip-intro-btn');
+  const recapBtn = $('skip-recap-btn');
+  if (_skipTimes.op) {
+    const { start, end } = _skipTimes.op;
+    introBtn.style.display = (t >= start && t < end) ? '' : 'none';
+  }
+  if (_skipTimes.recap) {
+    const { start, end } = _skipTimes.recap;
+    recapBtn.style.display = (t >= start && t < end) ? '' : 'none';
+  }
 });
 
 // ─── Subtitle track menu ──────────────────────────────────
@@ -960,6 +1010,25 @@ async function loadHistory() {
   }
 }
 
+// ─── Skip times (AniSkip) ─────────────────────────────────
+async function loadSkipTimes(malId, ep) {
+  _skipTimes = {};
+  $('skip-intro-btn').style.display = 'none';
+  $('skip-recap-btn').style.display = 'none';
+  if (!malId) return;
+  try {
+    const res = await fetch(`/api/skiptimes?mal_id=${malId}&ep=${ep}`);
+    const data = await res.json();
+    if (!data.found) return;
+    for (const item of data.results || []) {
+      const type = item.skip_type;
+      const { start_time: start, end_time: end } = item.interval;
+      if (type === 'op')     _skipTimes.op     = { start, end };
+      if (type === 'recap')  _skipTimes.recap  = { start, end };
+    }
+  } catch (_) {}
+}
+
 // ─── Auto subtitles ───────────────────────────────────────
 async function autoLoadSubtitles(title, ep) {
   // Skip if user already loaded a manual subtitle file
@@ -1045,7 +1114,7 @@ ccBtn.addEventListener('click', () => {
 
 // Show CC button whenever player is open
 function showCcBtn() { ccBtn.style.display = ''; }
-$('player-back').addEventListener('click', () => { ccBtn.style.display = 'none'; }, true);
+$('player-back').addEventListener('click', () => { ccBtn.style.display = 'none'; ccTrack.src = ''; ccBtn.classList.remove('on'); }, true);
 
 // Expose for player open
 const _origPlayEp = playEpisode;

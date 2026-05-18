@@ -193,6 +193,22 @@ async def proxy_stream(url: str = Query(...), request: Request = None):
     )
 
 
+@app.get("/api/skiptimes")
+async def api_skiptimes(mal_id: int = Query(...), ep: int = Query(..., ge=1)):
+    """Fetch intro/recap skip timestamps from AniSkip."""
+    if not mal_id:
+        return {"found": False, "results": []}
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get(
+                f"https://api.aniskip.com/v2/skip-times/{mal_id}/{ep}",
+                params={"types[]": ["op", "recap", "ed"]},
+            )
+            return r.json()
+    except Exception:
+        return {"found": False, "results": []}
+
+
 @app.get("/api/subtitles")
 async def api_subtitles(title: str = Query(...), ep: int = Query(..., ge=1)):
     from sources.subtitles import fetch as fetch_subs

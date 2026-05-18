@@ -113,7 +113,7 @@ query ($search: String) {
     media(search: $search, type: ANIME, sort: SEARCH_MATCH) {
       title { romaji english native }
       coverImage { extraLarge large }
-      genres format status averageScore seasonYear
+      genres format status averageScore seasonYear idMal
     }
   }
 }
@@ -183,6 +183,7 @@ async def _enrich_anilist_covers(results: list[dict], query: str = "") -> None:
             r["status"] = best_media.get("status") or ""
             r["score"] = best_media.get("averageScore") or 0
             r["year"] = best_media.get("seasonYear") or 0
+            r["mal_id"] = best_media.get("idMal") or 0
     except Exception:
         pass  # keep AllAnime data if AniList is down
 
