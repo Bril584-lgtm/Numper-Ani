@@ -22,6 +22,10 @@ HISTORY_FILE = Path(__file__).parent / "history.json"
 _stream_cache: dict[str, tuple[dict, float]] = {}
 _CACHE_TTL = 2700  # 45 min — stream tokens last ~3h, refresh well before expiry
 
+# Homepage data cache (AniList)
+_home_cache: dict = {}
+_HOME_CACHE_TTL = 1800  # 30 min
+
 _PROXY_HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0",
     "Accept": "*/*",
@@ -73,6 +77,20 @@ def _rewrite_m3u8(content: str, base_url: str) -> str:
 @app.get("/", response_class=HTMLResponse)
 async def index():
     return (STATIC_DIR / "index.html").read_text(encoding="utf-8")
+
+
+@app.get("/api/home")
+async def api_home():
+    """Homepage data: trending hero + all row sections from AniList."""
+    from sources.anilist_home import fetch_home_data
+    cached = _home_cache.get("data")
+    if cached:
+        data, ts = cached
+        if time.time() - ts < _HOME_CACHE_TTL:
+            return data
+    data = await fetch_home_data()
+    _home_cache["data"] = (data, time.time())
+    return data
 
 
 @app.get("/api/search")

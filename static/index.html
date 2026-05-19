@@ -37,6 +37,7 @@
 
     /* ─── Main content ─── */
     main { flex: 1; padding: 24px; overflow-y: auto; }
+    main.home-active { padding: 0; }
 
     /* ─── Tabs ─── */
     .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
@@ -215,6 +216,95 @@
     /* ─── Status ─── */
     #status { text-align: center; padding: 16px; color: var(--muted); font-size: .875rem; display: none; }
     #status.show { display: block; }
+
+    /* ─── Homepage ─── */
+    #home-view { margin: -24px -24px 0; }
+
+    /* Hero */
+    #hero { position: relative; height: 62vh; min-height: 420px; overflow: hidden; background: #0a0a10; }
+    .hero-bd { position: absolute; inset: 0; background-size: cover; background-position: center 20%; transition: opacity 0.9s ease; opacity: 0; }
+    .hero-bd.active { opacity: 1; }
+    #hero-gradient {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(14,14,18,.15) 0%, rgba(14,14,18,0) 35%, rgba(14,14,18,.75) 70%, rgba(14,14,18,1) 100%),
+                  linear-gradient(to right, rgba(14,14,18,.92) 0%, rgba(14,14,18,.4) 45%, rgba(14,14,18,0) 70%);
+    }
+    #hero-content { position: absolute; bottom: 72px; left: 40px; max-width: 480px; z-index: 2; }
+    #hero-label { font-size: .7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+    #hero-title { font-size: 2.6rem; font-weight: 800; line-height: 1.08; margin-bottom: 10px; text-shadow: 0 2px 12px rgba(0,0,0,.5); }
+    #hero-meta { display: flex; gap: 10px; align-items: center; font-size: .8rem; color: var(--muted); margin-bottom: 10px; flex-wrap: wrap; }
+    #hero-meta .hm-score { color: #fbbf24; font-weight: 600; }
+    #hero-synopsis { font-size: .875rem; line-height: 1.55; color: #ccc; margin-bottom: 20px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+    #hero-btns { display: flex; gap: 10px; }
+    #hero-play { padding: 11px 26px; border-radius: 6px; border: none; background: #fff; color: #000; font-size: .95rem; font-weight: 700; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px; }
+    #hero-play:hover { background: #ddd; }
+    #hero-info { padding: 11px 22px; border-radius: 6px; border: none; background: rgba(80,80,80,.65); color: #fff; font-size: .95rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px); transition: background .15s; display: flex; align-items: center; gap: 6px; }
+    #hero-info:hover { background: rgba(100,100,100,.8); }
+    #hero-dots { position: absolute; bottom: 26px; left: 40px; display: flex; gap: 7px; z-index: 2; }
+    .hero-dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,.3); cursor: pointer; transition: background .2s, transform .2s; }
+    .hero-dot.active { background: var(--accent); transform: scale(1.35); }
+    #hero-loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 3; }
+
+    /* Rows */
+    .home-section { padding: 28px 0 4px; }
+    .home-section:first-child { padding-top: 20px; }
+    .section-hdr { display: flex; align-items: center; justify-content: space-between; padding: 0 40px 12px; }
+    .section-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .row-wrap { position: relative; }
+    .row-track {
+      display: flex; gap: 10px; overflow-x: auto; padding: 8px 40px 20px;
+      scrollbar-width: none; scroll-behavior: smooth;
+    }
+    .row-track::-webkit-scrollbar { display: none; }
+    .row-arrow {
+      position: absolute; top: 50%; transform: translateY(-60%);
+      width: 36px; height: 72px; border: none; border-radius: 4px;
+      background: rgba(0,0,0,.7); color: #fff; font-size: 1.4rem;
+      cursor: pointer; z-index: 10; backdrop-filter: blur(4px);
+      opacity: 0; transition: opacity .2s; display: flex; align-items: center; justify-content: center;
+    }
+    .row-wrap:hover .row-arrow { opacity: 1; }
+    .row-arrow:hover { background: rgba(20,20,20,.95); }
+    .row-left { left: 0; border-radius: 0 4px 4px 0; }
+    .row-right { right: 0; border-radius: 4px 0 0 4px; }
+
+    /* Cards */
+    .home-card-wrap { flex-shrink: 0; width: 148px; position: relative; z-index: 1; }
+    .home-card {
+      width: 148px; border-radius: 8px; overflow: hidden; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .home-card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; display: block; background: var(--border); }
+    .home-card .card-label { padding: 6px 8px 8px; font-size: .72rem; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text); }
+
+    /* Hover panel (slides below card — controlled by JS) */
+    .home-card-panel {
+      width: 100%; background: #1c1c2a; border-radius: 0 0 8px 8px;
+      overflow: hidden; max-height: 0; transition: max-height .22s ease;
+    }
+    .home-card-panel-inner { padding: 10px; }
+    .hcp-meta { display: flex; gap: 6px; align-items: center; font-size: .7rem; color: var(--muted); margin-bottom: 6px; flex-wrap: wrap; }
+    .hcp-score { color: #fbbf24; font-weight: 700; }
+    .hcp-genres { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+    .hcp-genre { font-size: .62rem; padding: 2px 6px; border-radius: 4px; background: var(--border); color: var(--muted); }
+    .hcp-synopsis { font-size: .72rem; color: #aaa; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+    .hcp-play { width: 100%; padding: 7px; border-radius: 5px; border: none; background: var(--accent); color: #fff; font-size: .78rem; font-weight: 700; cursor: pointer; transition: background .15s; }
+    .hcp-play:hover { background: var(--accent2); }
+
+    /* Continue Watching history cards (landscape) */
+    .cw-card-wrap { flex-shrink: 0; width: 200px; position: relative; z-index: 1; }
+    .cw-card-wrap:hover { z-index: 40; }
+    .cw-card {
+      width: 200px; border-radius: 8px; overflow: hidden; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--border);
+      transition: transform .2s .25s ease, box-shadow .2s .25s ease;
+      transform-origin: center top;
+    }
+    .cw-card-wrap:hover .cw-card { transform: scale(1.15); box-shadow: 0 12px 36px rgba(0,0,0,.8); border-color: var(--accent); }
+    .cw-card img { width: 100%; aspect-ratio: 16/9; object-fit: cover; display: block; background: var(--border); }
+    .cw-card .cw-info { padding: 8px; }
+    .cw-card .cw-title { font-size: .78rem; font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 3px; }
+    .cw-card .cw-ep { font-size: .7rem; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -309,14 +399,37 @@
 
   <main>
     <div id="home-view">
-      <div id="history-section" style="display:none">
-        <h2>Continue Watching</h2>
-        <div id="history-grid" class="results-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:18px;"></div>
+      <!-- Hero banner -->
+      <div id="hero">
+        <div class="hero-bd" id="hero-bd-a"></div>
+        <div class="hero-bd" id="hero-bd-b"></div>
+        <div id="hero-gradient"></div>
+        <div id="hero-content">
+          <div id="hero-label">Trending</div>
+          <h1 id="hero-title"></h1>
+          <div id="hero-meta"></div>
+          <p id="hero-synopsis"></p>
+          <div id="hero-btns">
+            <button id="hero-play">▶ Play</button>
+            <button id="hero-info">ℹ More Info</button>
+          </div>
+        </div>
+        <div id="hero-dots"></div>
+        <div id="hero-loading"><div class="spinner"></div></div>
       </div>
-      <div class="empty-state" id="home-empty">
-        <div class="icon">🐱</div>
-        <p>Search for an anime above to get started!</p>
+
+      <!-- Continue Watching -->
+      <div id="home-continue" class="home-section" style="display:none">
+        <div class="section-hdr"><div class="section-title">Continue Watching</div></div>
+        <div class="row-wrap">
+          <button class="row-arrow row-left" data-dir="-1">&#8249;</button>
+          <div class="row-track" id="track-continue"></div>
+          <button class="row-arrow row-right" data-dir="1">&#8250;</button>
+        </div>
       </div>
+
+      <!-- Dynamic AniList rows -->
+      <div id="home-rows"></div>
     </div>
 
     <div id="results-view" style="display:none">
@@ -565,7 +678,9 @@ function showSearchLoading(label = 'Searching all sources…') {
 async function doSearch() {
   const q = $('search-input').value.trim();
   if (!q) return;
+  _fromHomepage = false;
   hide($('home-view'));
+  document.querySelector('main').classList.remove('home-active');
   $('ep-panel').classList.remove('open');
   $('ep-panel').style.display = '';
   show($('results-view'));
@@ -669,7 +784,13 @@ async function openAnime(anime) {
 
 $('back-btn').addEventListener('click', () => {
   $('ep-panel').classList.remove('open');
-  show($('results-view'));
+  if (_fromHomepage) {
+    _fromHomepage = false;
+    show($('home-view'));
+    document.querySelector('main').classList.add('home-active');
+  } else {
+    show($('results-view'));
+  }
 });
 
 // ─── Playback ─────────────────────────────────────────────
@@ -978,37 +1099,6 @@ async function fetchHistory() {
   } catch { return {}; }
 }
 
-async function loadHistory() {
-  const history = await fetchHistory();
-  const entries = Object.values(history);
-  if (!entries.length) return;
-
-  const section = $('history-section');
-  section.style.display = '';
-  hide($('home-empty'));
-
-  const grid = $('history-grid');
-  grid.innerHTML = '';
-  for (const e of entries.slice(-12).reverse()) {
-    const card = document.createElement('div');
-    card.className = 'anime-card';
-    const hThumb = e.thumb
-      ? `<img src="${e.thumb}" alt="${e.title}" loading="lazy" onerror="this.outerHTML='<div class=\\'card-thumb-placeholder\\'>🐱</div>'">`
-      : `<div class="card-thumb-placeholder">🐱</div>`;
-    card.innerHTML = `
-      ${hThumb}
-      <div class="card-info">
-        <div class="card-title">${e.title}</div>
-        <div class="card-meta">Ep ${e.ep} · ${e.dub ? 'DUB' : 'SUB'}</div>
-        <span class="source-badge">${e.source}</span>
-      </div>`;
-    card.addEventListener('click', () => {
-      currentAnime = e;
-      playEpisode(e, e.ep);
-    });
-    grid.appendChild(card);
-  }
-}
 
 // ─── Skip times (AniSkip) ─────────────────────────────────
 async function loadSkipTimes(malId, ep) {
@@ -1119,8 +1209,219 @@ $('player-back').addEventListener('click', () => { ccBtn.style.display = 'none';
 // Expose for player open
 const _origPlayEp = playEpisode;
 
+// ─── Navigation state ─────────────────────────────────────
+let _fromHomepage = false;
+
+// ─── Homepage ─────────────────────────────────────────────
+let _heroItems = [];
+let _heroIdx = 0;
+let _heroTimer = null;
+let _heroBdActive = 'a';
+
+function _setHeroBg(url) {
+  const next = _heroBdActive === 'a' ? 'b' : 'a';
+  const el = $(`hero-bd-${next}`);
+  el.style.backgroundImage = `url('${url}')`;
+  el.classList.add('active');
+  setTimeout(() => { $(`hero-bd-${_heroBdActive}`).classList.remove('active'); _heroBdActive = next; }, 50);
+}
+
+function _renderHeroItem(idx) {
+  const item = _heroItems[idx];
+  if (!item) return;
+  _heroIdx = idx;
+  _setHeroBg(item.banner || item.thumb);
+  $('hero-title').textContent = item.title;
+  $('hero-meta').innerHTML =
+    (item.score ? `<span class="hm-score">★ ${(item.score / 10).toFixed(1)}</span>` : '') +
+    (item.year ? `<span>${item.year}</span>` : '') +
+    (item.format ? `<span>${item.format}</span>` : '') +
+    (item.episodes ? `<span>${item.episodes} eps</span>` : '');
+  $('hero-synopsis').textContent = item.synopsis || '';
+  document.querySelectorAll('.hero-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+function _buildHero(trending) {
+  // Prefer items with a banner image for the hero
+  const withBanner = trending.filter(t => t.banner);
+  _heroItems = (withBanner.length >= 3 ? withBanner : trending).slice(0, 5);
+  if (!_heroItems.length) return;
+
+  // Dots
+  const dots = $('hero-dots');
+  dots.innerHTML = '';
+  _heroItems.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'hero-dot' + (i === 0 ? ' active' : '');
+    d.addEventListener('click', () => { _renderHeroItem(i); _startHeroRotate(); });
+    dots.appendChild(d);
+  });
+
+  _renderHeroItem(0);
+  hide($('hero-loading'));
+  _startHeroRotate();
+
+  $('hero-play').onclick = () => openFromTitle(_heroItems[_heroIdx].title);
+  $('hero-info').onclick = () => openFromTitle(_heroItems[_heroIdx].title);
+}
+
+function _startHeroRotate() {
+  if (_heroTimer) clearInterval(_heroTimer);
+  _heroTimer = setInterval(() => _renderHeroItem((_heroIdx + 1) % _heroItems.length), 7000);
+}
+
+function _buildRow(label, items, trackId, cardFn) {
+  const section = document.createElement('div');
+  section.className = 'home-section';
+  section.innerHTML = `
+    <div class="section-hdr"><div class="section-title">${label}</div></div>
+    <div class="row-wrap">
+      <button class="row-arrow row-left" data-dir="-1">&#8249;</button>
+      <div class="row-track" id="${trackId}"></div>
+      <button class="row-arrow row-right" data-dir="1">&#8250;</button>
+    </div>`;
+  const track = section.querySelector('.row-track');
+  items.forEach(item => track.appendChild(cardFn(item)));
+  section.querySelectorAll('.row-arrow').forEach(btn => {
+    btn.addEventListener('click', () => { track.scrollLeft += parseInt(btn.dataset.dir) * 480; });
+  });
+  return section;
+}
+
+function _makeAniCard(item) {
+  const wrap = document.createElement('div');
+  wrap.className = 'home-card-wrap';
+
+  const card = document.createElement('div');
+  card.className = 'home-card';
+  card.innerHTML = `
+    <img src="${item.thumb}" alt="${item.title}" loading="lazy" onerror="this.style.background='#2a2a3a';this.removeAttribute('src')">
+    <div class="card-label">${item.title}</div>`;
+  card.addEventListener('click', () => openFromTitle(item.title));
+
+  const panel = document.createElement('div');
+  panel.className = 'home-card-panel';
+  panel.innerHTML = `<div class="home-card-panel-inner">
+    <div class="hcp-meta">
+      ${item.score ? `<span class="hcp-score">★ ${(item.score/10).toFixed(1)}</span>` : ''}
+      ${item.year ? `<span>${item.year}</span>` : ''}
+      ${item.episodes ? `<span>${item.episodes} eps</span>` : ''}
+    </div>
+    <div class="hcp-genres">${(item.genres||[]).slice(0,3).map(g=>`<span class="hcp-genre">${g}</span>`).join('')}</div>
+    ${item.synopsis ? `<div class="hcp-synopsis">${item.synopsis.slice(0,110)}${item.synopsis.length>110?'…':''}</div>` : ''}
+    <button class="hcp-play">▶ Play</button>
+  </div>`;
+  panel.querySelector('.hcp-play').addEventListener('click', (e) => { e.stopPropagation(); openFromTitle(item.title); });
+
+  // Wrap the card+panel so they scale together on hover
+  const inner = document.createElement('div');
+  inner.style.cssText = 'position:relative;transform-origin:top center;transition:transform .22s ease,box-shadow .22s ease;z-index:1;';
+  inner.appendChild(card);
+  inner.appendChild(panel);
+
+  let hoverTimer = null;
+  wrap.addEventListener('mouseenter', () => {
+    hoverTimer = setTimeout(() => {
+      inner.style.transform = 'scale(1.3)';
+      inner.style.boxShadow = '0 18px 52px rgba(0,0,0,.9)';
+      inner.style.zIndex = '40';
+      panel.style.maxHeight = '170px';
+      card.style.borderRadius = '8px 8px 0 0';
+      wrap.style.zIndex = '40';
+    }, 280);
+  });
+  wrap.addEventListener('mouseleave', () => {
+    clearTimeout(hoverTimer);
+    inner.style.transform = '';
+    inner.style.boxShadow = '';
+    inner.style.zIndex = '1';
+    panel.style.maxHeight = '0';
+    card.style.borderRadius = '8px';
+    wrap.style.zIndex = '1';
+  });
+
+  wrap.appendChild(inner);
+  return wrap;
+}
+
+function _makeCwCard(entry) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cw-card-wrap';
+  const card = document.createElement('div');
+  card.className = 'cw-card';
+  const thumbHtml = entry.thumb
+    ? `<img src="${entry.thumb}" alt="${entry.title}" loading="lazy" onerror="this.style.background='#2a2a3a';this.removeAttribute('src')">`
+    : `<div style="width:100%;aspect-ratio:16/9;background:#2a2a3a;display:flex;align-items:center;justify-content:center;font-size:2rem;">🐱</div>`;
+  card.innerHTML = `${thumbHtml}<div class="cw-info"><div class="cw-title">${entry.title}</div><div class="cw-ep">Ep ${entry.ep} · ${entry.dub ? 'DUB' : 'SUB'}</div></div>`;
+  card.addEventListener('click', () => {
+    currentAnime = entry;
+    playEpisode(entry, entry.ep);
+  });
+  wrap.appendChild(card);
+  return wrap;
+}
+
+async function loadHomepage() {
+  document.querySelector('main').classList.add('home-active');
+  show($('hero-loading'));
+  const [homeRes, history] = await Promise.all([
+    fetch('/api/home').then(r => r.json()).catch(() => ({ trending: [], rows: [] })),
+    fetchHistory(),
+  ]);
+
+  // Hero
+  _buildHero(homeRes.trending || []);
+
+  // Continue Watching
+  const entries = Object.values(history).slice(-12).reverse();
+  if (entries.length) {
+    const track = $('track-continue');
+    track.innerHTML = '';
+    entries.forEach(e => track.appendChild(_makeCwCard(e)));
+    show($('home-continue'));
+    // Wire arrows
+    $('home-continue').querySelectorAll('.row-arrow').forEach(btn => {
+      btn.addEventListener('click', () => { track.scrollLeft += parseInt(btn.dataset.dir) * 480; });
+    });
+  }
+
+  // AniList rows
+  const rowsContainer = $('home-rows');
+  rowsContainer.innerHTML = '';
+  for (const row of (homeRes.rows || [])) {
+    if (!row.items?.length) continue;
+    rowsContainer.appendChild(_buildRow(row.label, row.items, `track-${row.label.replace(/\s+/g,'-')}`, _makeAniCard));
+  }
+
+  // Trending row (after hero)
+  if (homeRes.trending?.length) {
+    const trendRow = _buildRow('Trending Now', homeRes.trending, 'track-trending', _makeAniCard);
+    rowsContainer.insertAdjacentElement('afterbegin', trendRow);
+  }
+}
+
+async function openFromTitle(title) {
+  const loader = showSearchLoading(`Loading ${title}…`);
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(title)}&dub=${dubMode}`);
+    const data = await res.json();
+    loader.done();
+    const results = data.results || [];
+    if (!results.length) { status('⚠ Not found on streaming sites: ' + title, true); return; }
+    const titleLow = title.toLowerCase();
+    const best = results.find(r => r.title.toLowerCase() === titleLow) || results[0];
+    _fromHomepage = true;
+    hide($('home-view'));
+    document.querySelector('main').classList.remove('home-active');
+    await openAnime(best);
+  } catch (e) {
+    loader.fail();
+    status('⚠ ' + e.message, true);
+  }
+}
+
 // ─── Init ─────────────────────────────────────────────────
-loadHistory();
+loadHomepage();
 </script>
 </body>
 </html>
