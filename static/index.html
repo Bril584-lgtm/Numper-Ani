@@ -22,16 +22,45 @@
     /* ─── Layout ─── */
     #app { display: flex; flex-direction: column; min-height: 100vh; }
     header { display: flex; align-items: center; gap: 14px; padding: 16px 24px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
-    #logo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; }
-    .brand { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+    #logo { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; cursor: pointer; transition: transform .2s; }
+    #logo:hover { transform: scale(1.08); }
+    .brand { font-size: 1.4rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; cursor: pointer; }
+    .brand:hover { opacity: .85; }
     .brand span { color: var(--text); }
 
     /* ─── Search ─── */
     #search-bar { display: flex; gap: 10px; padding: 18px 24px; background: var(--surface); border-bottom: 1px solid var(--border); }
-    #search-input { flex: 1; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; outline: none; transition: border-color .2s; }
+    #search-wrap { position: relative; flex: 1; }
+    #search-input { width: 100%; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; outline: none; transition: border-color .2s; box-sizing: border-box; }
     #search-input:focus { border-color: var(--accent); }
+    #suggestions { display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); z-index: 300; max-height: 320px; overflow-y: auto; box-shadow: 0 8px 28px rgba(0,0,0,.6); }
+    #suggestions.open { display: block; }
+    .sug-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; transition: background .12s; }
+    .sug-item:hover, .sug-item.focused { background: rgba(255,255,255,.07); }
+    .sug-img { width: 30px; height: 42px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: var(--border); }
+    .sug-title { font-size: .88rem; flex: 1; }
+    .sug-meta { font-size: .7rem; color: var(--muted); white-space: nowrap; }
+
+    /* ─── Browse ─── */
+    #browse-view { display: none; padding: 0 24px 32px; }
+    #browse-view.open { display: block; }
+    #browse-letters { display: flex; flex-wrap: wrap; gap: 6px; padding: 18px 0 14px; }
+    .bl { padding: 5px 11px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: .82rem; font-weight: 700; cursor: pointer; transition: all .15s; min-width: 32px; text-align: center; }
+    .bl:hover { border-color: var(--accent); color: var(--accent); }
+    .bl.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    #browse-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; margin-top: 8px; }
+    #browse-pagination { display: none; align-items: center; justify-content: center; gap: 14px; margin: 24px 0 8px; }
+    #browse-pagination.show { display: flex; }
+    .browse-pg-btn { padding: 8px 20px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .9rem; cursor: pointer; transition: all .2s; }
+    .browse-pg-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .browse-pg-btn:disabled { opacity: .35; cursor: default; }
+    #browse-page-info { font-size: .85rem; color: var(--muted); min-width: 80px; text-align: center; }
     #dub-toggle { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .875rem; transition: border-color .2s; white-space: nowrap; }
     #dub-toggle.active { border-color: var(--accent); color: var(--accent); }
+    #nsfw-toggle { display: flex; align-items: center; gap: 5px; cursor: pointer; padding: 8px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: .875rem; font-weight: 700; transition: all .2s; white-space: nowrap; letter-spacing: .5px; }
+    #nsfw-toggle.active { border-color: #e11d48; color: #e11d48; background: rgba(225,29,72,.08); }
+    #browse-btn { padding: 8px 14px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); color: var(--muted); font-size: .875rem; font-weight: 700; cursor: pointer; transition: all .2s; white-space: nowrap; }
+    #browse-btn.active { border-color: var(--accent); color: var(--accent); }
     #search-btn { padding: 10px 20px; border-radius: var(--radius); border: none; background: var(--accent); color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background .2s; }
     #search-btn:hover { background: var(--accent2); }
 
@@ -64,6 +93,12 @@
     #ep-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
     #ep-meta { color: var(--muted); font-size: .875rem; }
     #back-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .875rem; margin-bottom: 16px; }
+    #provider-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+    #provider-label { font-size: .75rem; color: var(--muted); margin-right: 4px; }
+    .prov-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: .8rem; cursor: pointer; transition: all .15s; }
+    .prov-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .prov-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+    .prov-btn:disabled { opacity: .3; cursor: default; }
     #ep-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 10px; }
     .ep-btn { padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; text-align: center; font-size: .9rem; font-weight: 600; transition: all .2s; }
     .ep-btn:hover { border-color: var(--accent); color: var(--accent); }
@@ -258,13 +293,12 @@
     .row-track::-webkit-scrollbar { display: none; }
     .row-arrow {
       position: absolute; top: 50%; transform: translateY(-60%);
-      width: 36px; height: 72px; border: none; border-radius: 4px;
-      background: rgba(0,0,0,.7); color: #fff; font-size: 1.4rem;
-      cursor: pointer; z-index: 10; backdrop-filter: blur(4px);
-      opacity: 0; transition: opacity .2s; display: flex; align-items: center; justify-content: center;
+      width: 36px; height: 72px; border: 1px solid rgba(255,255,255,.2); border-radius: 4px;
+      background: rgba(30,30,40,.92); color: #fff; font-size: 1.6rem;
+      cursor: pointer; z-index: 20; backdrop-filter: blur(6px);
+      opacity: 1; transition: background .2s, border-color .2s; display: flex; align-items: center; justify-content: center;
     }
-    .row-wrap:hover .row-arrow { opacity: 1; }
-    .row-arrow:hover { background: rgba(20,20,20,.95); }
+    .row-arrow:hover { background: var(--accent); border-color: var(--accent); }
     .row-left { left: 0; border-radius: 0 4px 4px 0; }
     .row-right { right: 0; border-radius: 4px 0 0 4px; }
 
@@ -353,8 +387,13 @@
   </header>
 
   <div id="search-bar">
-    <input id="search-input" type="text" placeholder="Search anime... (e.g. Chained Soldier, One Piece)" autocomplete="off"/>
+    <div id="search-wrap">
+      <input id="search-input" type="text" placeholder="Search anime... (e.g. Chained Soldier, One Piece)" autocomplete="off"/>
+      <div id="suggestions"></div>
+    </div>
     <button id="dub-toggle" title="Toggle dub/sub">🎙 DUB</button>
+    <button id="nsfw-toggle" title="Toggle NSFW content">🔞 NSFW</button>
+    <button id="browse-btn" title="Browse A-Z">A-Z</button>
     <button id="filter-btn">⚙ Filter</button>
     <button id="search-btn">Search</button>
   </div>
@@ -439,6 +478,16 @@
       <div id="results-grid" class="results-grid"></div>
     </div>
 
+    <div id="browse-view">
+      <div id="browse-letters"></div>
+      <div id="browse-grid"></div>
+      <div id="browse-pagination">
+        <button class="browse-pg-btn" id="browse-prev">← Prev</button>
+        <span id="browse-page-info"></span>
+        <button class="browse-pg-btn" id="browse-next">Next →</button>
+      </div>
+    </div>
+
     <div id="ep-panel">
       <button id="back-btn">← Back to results</button>
       <div id="ep-header">
@@ -448,6 +497,7 @@
           <div id="ep-meta"></div>
         </div>
       </div>
+      <div id="provider-bar"></div>
       <div id="ep-grid"></div>
     </div>
   </main>
@@ -546,6 +596,7 @@
 <script>
 const API = '';
 let dubMode = false;
+let nsfwMode = false;
 let currentAnime = null;
 let currentEp = 1;
 let hls = null;
@@ -641,16 +692,201 @@ $('dub-toggle').addEventListener('click', () => {
   dubMode = !dubMode;
   $('dub-toggle').classList.toggle('active', dubMode);
   $('dub-toggle').textContent = dubMode ? '🎙 DUB ✓' : '🎙 DUB';
-  // Re-run search immediately if results are already showing
   const hasQuery = $('search-input').value.trim();
   const resultsVisible = $('results-view').style.display !== 'none';
   const epVisible = $('ep-panel').classList.contains('open');
-  if (hasQuery && (resultsVisible || epVisible)) doSearch();
+  const onHome = $('home-view').style.display !== 'none';
+  const browseOpen = $('browse-view').classList.contains('open');
+  if (browseOpen) { _browsePage = 1; loadBrowse(); }
+  else if (hasQuery && (resultsVisible || epVisible)) doSearch();
+  else if (onHome) loadHomepage();
 });
 
+// ─── NSFW toggle ──────────────────────────────────────────
+$('nsfw-toggle').addEventListener('click', () => {
+  nsfwMode = !nsfwMode;
+  $('nsfw-toggle').classList.toggle('active', nsfwMode);
+  $('nsfw-toggle').textContent = nsfwMode ? '🔞 NSFW ✓' : '🔞 NSFW';
+  const hasQuery = $('search-input').value.trim();
+  const resultsVisible = $('results-view').style.display !== 'none';
+  const epVisible = $('ep-panel').classList.contains('open');
+  const onHome = $('home-view').style.display !== 'none';
+  const browseOpen = $('browse-view').classList.contains('open');
+  if (browseOpen) { _browsePage = 1; loadBrowse(); }
+  else if (hasQuery && (resultsVisible || epVisible)) doSearch();
+  else if (onHome) loadHomepage();
+});
+
+// ─── Browse toggle ────────────────────────────────────────
+$('browse-btn').addEventListener('click', () => {
+  const open = $('browse-view').classList.toggle('open');
+  $('browse-btn').classList.toggle('active', open);
+  if (open) {
+    hide($('home-view')); hide($('results-view')); $('ep-panel').classList.remove('open');
+    document.querySelector('main').classList.remove('home-active');
+    if (!$('browse-letters').children.length) initBrowse();
+  } else {
+    show($('home-view')); document.querySelector('main').classList.add('home-active');
+  }
+});
+
+let _browseLetter = 'A', _browsePage = 1, _browseHasNext = false;
+const LETTERS = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ', '#'];
+
+function initBrowse() {
+  const bar = $('browse-letters');
+  bar.innerHTML = '';
+  LETTERS.forEach(l => {
+    const btn = document.createElement('button');
+    btn.className = 'bl' + (l === 'A' ? ' active' : '');
+    btn.textContent = l;
+    btn.addEventListener('click', () => {
+      bar.querySelectorAll('.bl').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _browseLetter = l; _browsePage = 1;
+      loadBrowse();
+    });
+    bar.appendChild(btn);
+  });
+  loadBrowse();
+}
+
+async function loadBrowse() {
+  const grid = $('browse-grid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Loading…</div>';
+  $('browse-pagination').classList.remove('show');
+  try {
+    const r = await fetch(`/api/browse?letter=${encodeURIComponent(_browseLetter)}&page=${_browsePage}&nsfw=${nsfwMode}&dub=${dubMode}`);
+    const data = await r.json();
+    grid.innerHTML = '';
+    if (!data.results.length) {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No anime found for this letter.</div>';
+    }
+    data.results.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'anime-card';
+      card.style.cursor = 'pointer';
+      card.innerHTML = item.thumb
+        ? `<img src="${item.thumb}" loading="lazy" alt=""/>`
+        : `<div class="card-thumb-placeholder">🎬</div>`;
+      const info = document.createElement('div');
+      info.className = 'card-info';
+      info.innerHTML = `<div class="card-title">${item.title}</div><div class="card-meta">${[item.format, item.year].filter(Boolean).join(' · ')}</div>`;
+      card.appendChild(info);
+      card.addEventListener('click', () => {
+        $('browse-view').classList.remove('open');
+        $('browse-btn').classList.remove('active');
+        show($('home-view'));
+        document.querySelector('main').classList.add('home-active');
+        $('search-input').value = item.title;
+        doSearch();
+      });
+      grid.appendChild(card);
+    });
+    _browseHasNext = data.has_next;
+    const hasPrev = _browsePage > 1;
+    if (_browseHasNext || hasPrev) {
+      const totalStr = data.total ? ` of ${data.total.toLocaleString()}` : '';
+      $('browse-page-info').textContent = `Page ${_browsePage}${totalStr}`;
+      $('browse-prev').disabled = !hasPrev;
+      $('browse-next').disabled = !_browseHasNext;
+      $('browse-pagination').classList.add('show');
+    }
+    // Scroll back to top of grid
+    $('browse-view').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch(e) {
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Failed to load. Try again.</div>';
+  }
+}
+
+$('browse-prev').addEventListener('click', () => { if (_browsePage > 1) { _browsePage--; loadBrowse(); } });
+$('browse-next').addEventListener('click', () => { if (_browseHasNext) { _browsePage++; loadBrowse(); } });
+
+// ─── Autocomplete ─────────────────────────────────────────
+let _sugTimer = null, _sugIdx = -1, _sugItems = [];
+
+$('search-input').addEventListener('input', () => {
+  clearTimeout(_sugTimer);
+  const q = $('search-input').value.trim();
+  if (q.length < 2) { hideSug(); return; }
+  _sugTimer = setTimeout(() => fetchSug(q), 280);
+});
+
+$('search-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { hideSug(); doSearch(); return; }
+  if (!$('suggestions').classList.contains('open')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); moveSug(1); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); moveSug(-1); }
+  else if (e.key === 'Escape') hideSug();
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#search-wrap')) hideSug();
+});
+
+async function fetchSug(q) {
+  try {
+    const r = await fetch(`/api/suggest?q=${encodeURIComponent(q)}`);
+    const data = await r.json();
+    showSug(data.results || []);
+  } catch { hideSug(); }
+}
+
+function showSug(results) {
+  const box = $('suggestions');
+  if (!results.length) { hideSug(); return; }
+  _sugItems = results; _sugIdx = -1;
+  box.innerHTML = '';
+  results.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'sug-item';
+    el.innerHTML = `<img class="sug-img" src="${item.thumb || ''}" onerror="this.style.display='none'"/><span class="sug-title">${item.title}</span><span class="sug-meta">${item.format || ''}</span>`;
+    el.addEventListener('mousedown', e => { e.preventDefault(); pickSug(i); });
+    box.appendChild(el);
+  });
+  box.classList.add('open');
+}
+
+function hideSug() { $('suggestions').classList.remove('open'); _sugIdx = -1; }
+
+function moveSug(dir) {
+  const items = $('suggestions').querySelectorAll('.sug-item');
+  if (!items.length) return;
+  items[_sugIdx]?.classList.remove('focused');
+  _sugIdx = Math.max(-1, Math.min(items.length - 1, _sugIdx + dir));
+  if (_sugIdx >= 0) {
+    items[_sugIdx].classList.add('focused');
+    $('search-input').value = _sugItems[_sugIdx].title;
+  }
+}
+
+async function pickSug(i) {
+  const item = _sugItems[i];
+  $('search-input').value = item.title;
+  hideSug();
+  const loader = showSearchLoading(`Loading ${item.title}…`);
+  try {
+    const res = await fetch(`${API}/api/search?q=${encodeURIComponent(item.title)}&dub=${dubMode}&nsfw=${nsfwMode}`);
+    const data = await res.json();
+    loader.done();
+    _allResults = data.results || [];
+    buildGenreChips(_allResults);
+    if (!_allResults.length) { applyFilters(); return; }
+    const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const target = norm(item.title);
+    const best = _allResults.find(r => norm(r.title) === target) || _allResults[0];
+    _fromHomepage = false;
+    hide($('home-view'));
+    document.querySelector('main').classList.remove('home-active');
+    await openAnime(best);
+  } catch(e) {
+    loader.fail();
+    doSearch();
+  }
+}
+
 // ─── Search ───────────────────────────────────────────────
-$('search-btn').addEventListener('click', doSearch);
-$('search-input').addEventListener('keydown', e => e.key === 'Enter' && doSearch());
+$('search-btn').addEventListener('click', () => { hideSug(); doSearch(); });
 
 function showSearchLoading(label = 'Searching all sources…') {
   $('search-loading-label').textContent = label;
@@ -688,7 +924,7 @@ async function doSearch() {
 
   const loader = showSearchLoading('Searching all sources…');
   try {
-    const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&dub=${dubMode}`);
+    const res = await fetch(`${API}/api/search?q=${encodeURIComponent(q)}&dub=${dubMode}&nsfw=${nsfwMode}`);
     const data = await res.json();
     loader.done();
     _allResults = data.results || [];
@@ -727,6 +963,43 @@ function renderResults(results) {
   }
 }
 
+// ─── Provider switcher ────────────────────────────────────
+const PROVIDERS = [
+  { id: 'allanime',  label: 'AllAnime'  },
+  { id: 'gogoanime', label: 'GogoAnime' },
+  { id: 'animepahe', label: 'AnimePahe' },
+];
+
+function _titlesMatch(a, b) {
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  const na = norm(a), nb = norm(b);
+  if (na === nb) return true;
+  const words = s => new Set(norm(s).split(/\s+/).filter(w => w.length > 1));
+  const wa = words(a), wb = words(b);
+  const inter = [...wa].filter(w => wb.has(w)).length;
+  const union = new Set([...wa, ...wb]).size;
+  return union > 0 && inter / union >= 0.35;
+}
+
+function buildProviderBar(anime) {
+  const bar = $('provider-bar');
+  bar.innerHTML = '<span id="provider-label">Source:</span>';
+  for (const prov of PROVIDERS) {
+    const match = prov.id === anime.source
+      ? anime
+      : (_allResults || []).find(r => r.source === prov.id && _titlesMatch(r.title, anime.title));
+    const btn = document.createElement('button');
+    btn.className = 'prov-btn' + (prov.id === anime.source ? ' active' : '');
+    btn.textContent = prov.label;
+    if (!match) {
+      btn.disabled = true;
+    } else if (prov.id !== anime.source) {
+      btn.addEventListener('click', () => openAnime(match));
+    }
+    bar.appendChild(btn);
+  }
+}
+
 // ─── Episode panel ────────────────────────────────────────
 async function openAnime(anime) {
   currentAnime = anime;
@@ -738,6 +1011,7 @@ async function openAnime(anime) {
   $('ep-title').textContent = anime.title;
   $('ep-meta').textContent = `${anime.episodes || '?'} episodes · ${anime.source} · ${dubMode ? 'DUB' : 'SUB'}`;
   if (anime.thumb) $('ep-thumb').src = anime.thumb;
+  buildProviderBar(anime);
 
   const history = await fetchHistory();
   const key = `${anime.source}:${anime.id}`;
@@ -1245,6 +1519,7 @@ function _buildHero(trending) {
   // Prefer items with a banner image for the hero
   const withBanner = trending.filter(t => t.banner);
   _heroItems = (withBanner.length >= 3 ? withBanner : trending).slice(0, 5);
+  hide($('hero-loading'));
   if (!_heroItems.length) return;
 
   // Dots
@@ -1258,7 +1533,6 @@ function _buildHero(trending) {
   });
 
   _renderHeroItem(0);
-  hide($('hero-loading'));
   _startHeroRotate();
 
   $('hero-play').onclick = () => openFromTitle(_heroItems[_heroIdx].title);
@@ -1268,6 +1542,43 @@ function _buildHero(trending) {
 function _startHeroRotate() {
   if (_heroTimer) clearInterval(_heroTimer);
   _heroTimer = setInterval(() => _renderHeroItem((_heroIdx + 1) % _heroItems.length), 7000);
+}
+
+function _addDragScroll(track) {
+  let dragging = false, startX = 0, startScroll = 0, didDrag = false;
+
+  track.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    dragging = true;
+    didDrag = false;
+    startX = e.pageX;
+    startScroll = track.scrollLeft;
+    track.style.scrollBehavior = 'auto';
+    track.style.cursor = 'grabbing';
+    track.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    const dx = e.pageX - startX;
+    if (Math.abs(dx) > 3) didDrag = true;
+    track.scrollLeft = startScroll - dx;
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    track.style.scrollBehavior = '';
+    track.style.cursor = 'grab';
+    track.style.userSelect = '';
+  });
+
+  track.addEventListener('click', e => {
+    if (didDrag) { e.stopPropagation(); didDrag = false; }
+  }, true);
+
+  track.style.cursor = 'grab';
 }
 
 function _buildRow(label, items, trackId, cardFn) {
@@ -1283,8 +1594,11 @@ function _buildRow(label, items, trackId, cardFn) {
   const track = section.querySelector('.row-track');
   items.forEach(item => track.appendChild(cardFn(item)));
   section.querySelectorAll('.row-arrow').forEach(btn => {
-    btn.addEventListener('click', () => { track.scrollLeft += parseInt(btn.dataset.dir) * 480; });
+    btn.addEventListener('click', () => {
+      track.scrollBy({ left: parseInt(btn.dataset.dir) * track.clientWidth * 0.85, behavior: 'smooth' });
+    });
   });
+  _addDragScroll(track);
   return section;
 }
 
@@ -1365,7 +1679,7 @@ async function loadHomepage() {
   document.querySelector('main').classList.add('home-active');
   show($('hero-loading'));
   const [homeRes, history] = await Promise.all([
-    fetch('/api/home').then(r => r.json()).catch(() => ({ trending: [], rows: [] })),
+    fetch(`/api/home?nsfw=${nsfwMode}`).then(r => r.json()).catch(() => ({ trending: [], rows: [] })),
     fetchHistory(),
   ]);
 
@@ -1381,8 +1695,11 @@ async function loadHomepage() {
     show($('home-continue'));
     // Wire arrows
     $('home-continue').querySelectorAll('.row-arrow').forEach(btn => {
-      btn.addEventListener('click', () => { track.scrollLeft += parseInt(btn.dataset.dir) * 480; });
+      btn.addEventListener('click', () => {
+        track.scrollBy({ left: parseInt(btn.dataset.dir) * track.clientWidth * 0.85, behavior: 'smooth' });
+      });
     });
+    _addDragScroll(track);
   }
 
   // AniList rows
@@ -1403,7 +1720,7 @@ async function loadHomepage() {
 async function openFromTitle(title) {
   const loader = showSearchLoading(`Loading ${title}…`);
   try {
-    const res = await fetch(`/api/search?q=${encodeURIComponent(title)}&dub=${dubMode}`);
+    const res = await fetch(`/api/search?q=${encodeURIComponent(title)}&dub=${dubMode}&nsfw=${nsfwMode}`);
     const data = await res.json();
     loader.done();
     const results = data.results || [];
@@ -1419,6 +1736,20 @@ async function openFromTitle(title) {
     status('⚠ ' + e.message, true);
   }
 }
+
+// ─── Logo → home ──────────────────────────────────────────
+function goHome() {
+  hide($('results-view'));
+  $('ep-panel').classList.remove('open');
+  $('browse-view').classList.remove('open');
+  $('browse-btn').classList.remove('active');
+  $('search-input').value = '';
+  hideSug();
+  show($('home-view'));
+  document.querySelector('main').classList.add('home-active');
+}
+$('logo').addEventListener('click', goHome);
+document.querySelector('.brand').addEventListener('click', goHome);
 
 // ─── Init ─────────────────────────────────────────────────
 loadHomepage();

@@ -1,29 +1,67 @@
-"""Source router — AllAnime primary, GogoAnime independent fallback."""
+"""Source router — AllAnime primary, GogoAnime + AnimePahe independent fallbacks."""
 import asyncio
-from . import allanime, hianime, gogoanime, playwright_extractor
+import urllib.parse
+import httpx
+from . import allanime, hianime, gogoanime, playwright_extractor, animepahe
+
+_ANILIST_CORRECT_GQL = "query($s:String){Page(page:1,perPage:1){media(search:$s,type:ANIME,sort:SEARCH_MATCH){title{romaji english}}}}"
 
 
-async def search_all(query: str, dub: bool = False) -> list[dict]:
-    results_aa, results_hi, results_gogo = await asyncio.gather(
-        allanime.search(query, dub=dub),
-        hianime.search(query, dub=dub),
-        gogoanime.search(query, dub=dub),
-        return_exceptions=True,
-    )
-    seen_titles = set()
-    merged = []
-    for bucket in [results_aa, results_hi, results_gogo]:
+async def _anilist_correct(query: str) -> str:
+    """Return AniList's best-guess title for a potentially misspelled query."""
+    try:
+        async with httpx.AsyncClient(timeout=5) as c:
+            r = await c.post("https://graphql.anilist.co",
+                json={"query": _ANILIST_CORRECT_GQL, "variables": {"s": query}},
+                headers={"Content-Type": "application/json"})
+            media = r.json().get("data", {}).get("Page", {}).get("media", [])
+            if media:
+                t = media[0].get("title") or {}
+                return t.get("english") or t.get("romaji") or ""
+    except Exception:
+        pass
+    return ""
+
+
+def _merge(*buckets) -> list[dict]:
+    seen, out = set(), []
+    for bucket in buckets:
         for r in (bucket if not isinstance(bucket, Exception) else []):
             key = r["title"].lower().strip()
-            if key not in seen_titles:
-                seen_titles.add(key)
-                merged.append(r)
+            if key not in seen:
+                seen.add(key)
+                out.append(r)
+    return out
+
+
+async def search_all(query: str, dub: bool = False, nsfw: bool = False) -> list[dict]:
+    results_aa, results_hi, results_gogo, results_pahe = await asyncio.gather(
+        allanime.search(query, dub=dub, nsfw=nsfw),
+        hianime.search(query, dub=dub),
+        gogoanime.search(query, dub=dub),
+        animepahe.search(query, dub=dub),
+        return_exceptions=True,
+    )
+    merged = _merge(results_aa, results_hi, results_gogo, results_pahe)
+
+    # Fuzzy fallback: if few results, ask AniList for corrected title and retry
+    if len(merged) < 3:
+        corrected = await _anilist_correct(query)
+        if corrected and corrected.lower() != query.lower():
+            extra = await allanime.search(corrected, dub=dub, nsfw=nsfw)
+            if not isinstance(extra, Exception):
+                seen = {r["title"].lower() for r in merged}
+                for r in extra:
+                    if r["title"].lower() not in seen:
+                        merged.append(r)
     return merged
 
 
 async def get_episode_count(source: str, show_id: str) -> int:
     if source == "gogoanime":
         return await gogoanime.get_episode_count(show_id)
+    if source == "animepahe":
+        return await animepahe.get_episode_count(show_id)
     return 0
 
 
@@ -38,11 +76,14 @@ async def get_stream(source: str, show_id: str, ep: int, dub: bool = False) -> d
         return await gogoanime.get_stream(show_id, ep, dub=dub)
     elif source == "hianime":
         return await _resolve_hianime(show_id, ep, dub)
+    elif source == "animepahe":
+        return await animepahe.get_stream(show_id, ep, dub=dub)
     return {"error": "Unknown source"}
 
 
 _CLOCK_PREFIXES = ("/apivtwo/", "/clock", "allanime.day/")
 _DIRECT_STREAM = (".m3u8", ".mp4", "cdnfile", "cdn.plyr", "storage.googleapis")
+_PROXY_DIRECT = ("fast4speed",)  # direct MP4 URLs that need the proxy for CORS
 
 
 def _is_clock_url(url: str) -> bool:
@@ -62,8 +103,8 @@ async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
     if not sources:
         return {"error": "No sources found on AllAnime"}
 
-    # Priority: Filemoon/Vid-mp4 (reliable m3u8), then OK.ru, then others
-    priority = ["Default", "Vid-mp4", "Fm-mp4", "Luf-Mp4", "S-mp4", "Ok", "Yt-mp4"]
+    # Priority: Filemoon (reliable m3u8) → Vid-mp4 → direct MP4 → others
+    priority = ["Default", "Fm-Hls", "Vid-mp4", "Luf-Mp4", "S-mp4", "Ok", "Yt-mp4", "Sw", "Vg", "Mp4"]
 
     def source_rank(s):
         try:
@@ -78,6 +119,10 @@ async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
         name = src.get("name", "unknown")
         if not url:
             continue
+
+        # fast4speed and similar: direct MP4, needs proxy for CORS
+        if any(p in url for p in _PROXY_DIRECT):
+            return {"url": f"/api/proxy?url={urllib.parse.quote(url, safe='')}", "type": "mp4", "source": f"allanime:{name}"}
 
         # If it's already a direct stream, serve it
         if _is_direct_stream(url):

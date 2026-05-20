@@ -1,193 +1,146 @@
-# Numper Ani 🐱
+<p align="center">
+  <img src="https://i.imgur.com/placeholder.png" alt="Numper Ani" width="120" style="display:none"/>
+</p>
 
-```
-  /\_/\   Numper Ani
- ( o.o )  Your free, ad-free anime hub
-  > ^ <   — Numper the orange cat, librarian of anime —
-```
+<h1 align="center">Numper Ani</h1>
 
-A **local desktop anime player** that aggregates multiple streaming sources into one clean, ad-free interface — launched from your terminal, watched in your browser.
+<p align="center">
+  A free, ad-free, locally-run anime hub — one interface, every show, zero subscriptions.
+</p>
 
----
-
-> ## ⚠️ Legal Disclaimer
->
-> **Numper Ani does not host, store, distribute, or reproduce any copyrighted content.**
->
-> This tool is a **client-side aggregator**. It queries publicly accessible third-party APIs and streaming embeds in the same way a browser would when you visit those sites directly. All video content is served from the original source servers — Numper Ani only resolves and proxies the stream URL through localhost to avoid CORS issues.
->
-> - This project is intended for **personal, non-commercial, educational use only**.
-> - Users are solely responsible for ensuring their use complies with the laws of their country and the terms of service of any third-party site accessed.
-> - The developers of Numper Ani are **not affiliated** with AllAnime, GogoAnime, AniList, or any other streaming or metadata service.
-> - If you are a rights holder and believe your content is being improperly accessed, please contact the third-party source sites directly. This tool contains no infringing content and cannot remove content from external servers.
-> - **Use at your own risk.**
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10%2B-blue?style=flat-square&logo=python" alt="Python"/>
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="MIT License"/>
+  <img src="https://img.shields.io/badge/Platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey?style=flat-square" alt="Platform"/>
+  <img src="https://img.shields.io/badge/Status-Active-brightgreen?style=flat-square" alt="Status"/>
+</p>
 
 ---
 
-## Features
+## What is Numper Ani?
 
-- **Netflix-style homepage** — hero banner, auto-rotating trending titles, horizontal scroll rows by genre
-- **AniList integration** — Trending, Popular This Season, Top Rated, Action, Romance, Fantasy, Comedy, Sci-Fi rows with cover art, scores, and synopsis
-- **Search across AllAnime + GogoAnime** simultaneously
-- **Auto-source fallback** — tries every available source, picks the first that works
-- **Dub / Sub toggle** with one click
-- **Source switcher** — manually switch between Filemoon, Direct MP4, Streamwish, OK.ru, and more inside the player
-- **Skip Intro / Skip Recap** buttons (powered by AniSkip)
-- **Continue Watching** — episode history saved locally, shown on the homepage
-- **Subtitle support** — load your own .srt/.vtt file, or auto-fetch via OpenSubtitles
-- **No login required** — completely free
-- **HLS.js player** — handles both `.m3u8` and `.mp4` streams
-- **CORS proxy** built-in — all streams route through localhost
+Numper Ani is a **locally-hosted anime aggregator** that runs on your machine and opens in your browser. It pulls together anime metadata and streaming availability from multiple publicly accessible sources, presenting them in a single clean, Netflix-inspired interface — with no ads, no pop-ups, no account required, and no monthly fee.
+
+You launch it once from your terminal or by double-clicking a script. Everything else happens at `localhost`.
+
+---
+
+## What it offers
+
+### Discovery
+- **Netflix-style homepage** with a hero banner and rotating trending titles
+- **Genre rows** — Action, Romance, Fantasy, Comedy, Sci-Fi, and more
+- **Seasonal spotlight** — what's popular right now
+- **Top-rated all-time** rankings with cover art, scores, and synopsis
+- **A–Z Browse** — scroll through the full anime catalog letter by letter, with pagination
+- **NSFW toggle** — switch to an adult-oriented content view when enabled
+
+### Search
+- **Multi-source search** — queries several providers simultaneously and merges the results
+- **Autocomplete** — live suggestions as you type, click to jump straight to episodes
+- **Fuzzy correction** — handles typos and alternate titles gracefully
+- **Dub / Sub toggle** — one click to switch modes before or during browsing
+
+### Watching
+- **Episode panel** — clean numbered grid for every episode of a show
+- **Provider switcher** — if one source has trouble, switch to another with a single click, without leaving the player
+- **Skip Intro / Skip Recap** buttons that appear automatically at the right moment
+- **Continue Watching** — your episode progress is saved locally and shown on the homepage
+- **Subtitle support** — load your own `.srt` / `.vtt` file, or let the app fetch them automatically
+- **Seekable playback** — full scrubbing support on both HLS and direct MP4 streams
+- **Source quality bar** — see which server is streaming and switch on the fly
+
+### Technical
+- Runs entirely on your local machine — nothing is uploaded or logged externally
+- Streams are proxied through `localhost` to handle cross-origin restrictions
+- No API keys, no accounts, no paid services required
+- Works on Windows, macOS, and Linux
 
 ---
 
 ## Requirements
 
-- **Python 3.10+** — [Download](https://www.python.org/downloads/)
-- **pip** (comes with Python)
-- A modern browser (Chrome, Firefox, Edge)
+- **Python 3.10 or newer** — [python.org/downloads](https://www.python.org/downloads/)
+- A modern web browser (Chrome, Firefox, Edge)
 
 ---
 
 ## Installation
 
-### Step 1 — Clone the repo
-
 ```bash
+# 1. Clone the repository
 git clone https://github.com/Bril584-lgtm/Numper-Ani.git
 cd Numper-Ani
-```
 
-### Step 2 — Install dependencies
-
-```bash
+# 2. Install Python dependencies
 pip install -r requirements.txt
-```
 
-### Step 3 — Install Playwright browser (one-time)
-
-```bash
+# 3. Install the headless browser (one-time, ~130 MB)
 python -m playwright install chromium
 ```
 
-That's it. No API keys, no accounts, no other setup needed.
+No API keys. No configuration files. No accounts.
 
 ---
 
 ## Usage
 
-### Launch (Windows — double-click)
+**Windows — double-click launcher:**
+```
+run.bat
+```
 
-Double-click **`run.bat`**.
-
-### Launch (Terminal — any OS)
-
+**Any platform — terminal:**
 ```bash
 python main.py
 ```
 
-Your browser will automatically open to `http://localhost:6969`.
+Your default browser will open automatically. If it doesn't, navigate to `http://localhost:6969`.
 
 ---
 
-## How to watch
+## Quick start
 
-1. **Browse the homepage** — scroll through trending, seasonal, and genre rows, or use the hero banner
-2. **Search** — type an anime name and hit Enter for direct results
-3. **Toggle DUB** if you want the dubbed version
-4. **Click an anime card** to see its episodes
-5. **Click an episode number** to start watching
-6. **Switch sources** anytime using the source bar above the video if one source fails
-7. **Skip intro/recap** using the buttons that appear at the right time
-
----
-
-## How it works
-
-```
-Homepage loads
-        ↓
-AniList API returns trending / seasonal / genre metadata (cover art, scores, synopsis)
-        ↓
-You pick an anime (from homepage or search)
-        ↓
-AllAnime / GogoAnime APIs return episode source URLs (encrypted)
-        ↓
-Backend decrypts URLs — fast sources (clock.json, direct MP4) resolve instantly
-        ↓
-JS-protected embeds (Filemoon, Streamwish) use Playwright headlessly
-        ↓
-Stream is proxied through localhost → HLS.js plays it in your browser
-```
-
-No streaming site ever loads in your actual browser tab. All resolution happens invisibly in the backend.
-
----
-
-## Sources
-
-| Source | What it provides | Notes |
-|--------|-----------------|-------|
-| AllAnime (`api.allanime.day`) | Episode stream URLs (encrypted) | Primary source, supports dub/sub |
-| GogoAnime | Episode stream URLs | Fallback / additional source |
-| AniList (`graphql.anilist.co`) | Metadata only — covers, scores, genres | Homepage & search enrichment |
-| AniSkip (`api.aniskip.com`) | Skip timestamps | Intro / recap buttons in player |
-| OpenSubtitles | Subtitle files | Auto-fetched when available |
-| Playwright (Chromium) | JS-protected embed extractor | Headless, runs locally |
-
-**HiAnime (hianime.to) was permanently shut down in May 2026 and is disabled.**
-
----
-
-## Project structure
-
-```
-Numper-Ani/
-├── main.py                      # Entry point — starts server, opens browser
-├── server.py                    # FastAPI: all /api/* endpoints + caching
-├── sources/
-│   ├── allanime.py              # AllAnime search, AES-256-CTR decryption, episode sources
-│   ├── anilist_home.py          # AniList homepage data (trending, genres, metadata)
-│   ├── gogoanime.py             # GogoAnime source
-│   ├── hianime.py               # Disabled (site shut down)
-│   ├── playwright_extractor.py  # Headless Chromium m3u8 extractor
-│   ├── router.py                # Multi-source orchestration + auto-fallback
-│   └── subtitles.py             # OpenSubtitles auto-fetch
-├── static/
-│   └── index.html               # Full SPA — homepage, search, player, source switcher
-├── requirements.txt
-├── run.bat                      # Windows double-click launcher
-└── README.md
-```
+1. The **homepage** loads with trending and seasonal rows — scroll or click anything to start
+2. Use the **search bar** to find a specific title; autocomplete will suggest as you type
+3. Toggle **DUB** or **NSFW** in the top bar as needed
+4. Click an anime card → pick an episode → watch
+5. If playback fails, use the **source switcher** above the video to try another provider
+6. **Skip Intro / Recap** buttons appear automatically — click them or let them count down
 
 ---
 
 ## Troubleshooting
 
-**"No sources found"** — The episode may not be available in the selected dub/sub mode. Toggle DUB/SUB and try again.
-
-**"All sources failed"** — Source servers are temporarily down. Try switching sources manually in the player, or come back later.
-
-**Slow first load** — Playwright (headless Chromium) takes 5–15 seconds on JS-protected embeds. Subsequent plays are cached and instant.
-
-**Browser doesn't open automatically** — Navigate to `http://localhost:6969` manually.
-
-**Homepage shows no cover art** — AniList API may be temporarily unavailable. Search still works normally.
+| Symptom | Fix |
+|---|---|
+| "No sources found" | Toggle DUB/SUB — the episode may not be available in your selected mode |
+| "All sources failed" | Switch providers using the source bar; external servers may be temporarily down |
+| Slow first load on some episodes | Normal — certain sources require a few extra seconds to resolve. Cached after first play |
+| Browser doesn't open | Go to `http://localhost:6969` manually |
+| Homepage has no images | Metadata service may be temporarily unavailable — search still works normally |
 
 ---
 
-## Mascot
+## Legal Disclaimer
 
-Meet **Numper** — an orange cat with round glasses who holds a library book. He catalogues every anime ever made and knows exactly where to find it.
+> **Numper Ani does not host, store, distribute, or reproduce any copyrighted content.**
+
+This software is a **personal-use aggregation client**. It makes HTTP requests to third-party, publicly accessible APIs and streaming endpoints in the same manner any browser would when a user visits those services directly. All media content is served exclusively from the original third-party servers. Numper Ani does not cache, re-host, modify, or redistribute any video content.
+
+- This project is intended solely for **personal, non-commercial, and educational use**.
+- Users are solely responsible for ensuring their use complies with the applicable laws of their jurisdiction and the terms of service of any third-party services accessed.
+- The developers and contributors of Numper Ani are **not affiliated with, endorsed by, or in partnership with** any streaming service, content provider, or rights holder referenced by this software.
+- Third-party services accessed by this software are operated independently. Their availability, content, and legality are entirely outside the control of this project.
+- If you are a rights holder and believe that a third-party service accessed by this tool is infringing your content, please contact that service directly. This repository contains no infringing content and has no ability to remove content from external servers.
+- **This software is provided as-is, with no warranty of any kind. Use at your own risk.**
 
 ---
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
-
-*This project is provided as-is with no warranty. The author assumes no liability for misuse.*
+[MIT](LICENSE) — free to use, modify, and distribute with attribution.
 
 ---
 
-*Built with FastAPI · Playwright · HLS.js · AniList · love for anime*
+<p align="center">Built with FastAPI · HLS.js · Playwright · AniList &nbsp;·&nbsp; Made for anime lovers</p>

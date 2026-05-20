@@ -188,10 +188,10 @@ async def _enrich_anilist_covers(results: list[dict], query: str = "") -> None:
         pass  # keep AllAnime data if AniList is down
 
 
-async def search(query: str, dub: bool = False) -> list[dict]:
+async def search(query: str, dub: bool = False, nsfw: bool = False) -> list[dict]:
     mode = "dub" if dub else "sub"
     variables = {
-        "search": {"allowAdult": False, "allowUnknown": False, "query": query},
+        "search": {"allowAdult": nsfw, "allowUnknown": False, "query": query},
         "limit": 40,
         "page": 1,
         "translationType": mode,

@@ -61,14 +61,26 @@ query($season:MediaSeason,$seasonYear:Int){
 }
 """
 
+_NSFW_QUERY = """
+query($season:MediaSeason,$seasonYear:Int){
+  trending:Page(page:1,perPage:25){media(sort:TRENDING_DESC,type:ANIME,genre:"Ecchi",isAdult:false){""" + _F + """}}
+  seasonal:Page(page:1,perPage:20){media(sort:POPULARITY_DESC,type:ANIME,genre:"Ecchi",season:$season,seasonYear:$seasonYear,isAdult:false){""" + _F + """}}
+  topEcchi:Page(page:1,perPage:20){media(sort:SCORE_DESC,type:ANIME,genre:"Ecchi",isAdult:false,averageScore_greater:60){""" + _F + """}}
+  adult:Page(page:1,perPage:20){media(sort:POPULARITY_DESC,type:ANIME,isAdult:true){""" + _F + """}}
+  romance:Page(page:1,perPage:20){media(sort:SCORE_DESC,type:ANIME,genre:"Romance",isAdult:false,averageScore_greater:60){""" + _F + """}}
+  harem:Page(page:1,perPage:20){media(genre:"Harem",sort:POPULARITY_DESC,type:ANIME,isAdult:false){""" + _F + """}}
+}
+"""
 
-async def fetch_home_data() -> dict:
+
+async def fetch_home_data(nsfw: bool = False) -> dict:
     season, year = _current_season()
+    query = _NSFW_QUERY if nsfw else _HOME_QUERY
     try:
         async with httpx.AsyncClient(timeout=20, headers=_HEADERS) as client:
             r = await client.post(
                 ANILIST_URL,
-                json={"query": _HOME_QUERY, "variables": {"season": season, "seasonYear": year}},
+                json={"query": query, "variables": {"season": season, "seasonYear": year}},
             )
             data = r.json().get("data") or {}
     except Exception:
@@ -77,6 +89,18 @@ async def fetch_home_data() -> dict:
     def extract(key: str) -> list[dict]:
         page = data.get(key) or {}
         return [_to_card(m) for m in (page.get("media") or []) if (m.get("title") or {}).get("romaji")]
+
+    if nsfw:
+        return {
+            "trending": extract("trending"),
+            "rows": [
+                {"label": "Ecchi This Season", "items": extract("seasonal")},
+                {"label": "Top Ecchi", "items": extract("topEcchi")},
+                {"label": "Adult / Explicit", "items": extract("adult")},
+                {"label": "Ecchi Romance", "items": extract("romance")},
+                {"label": "Harem", "items": extract("harem")},
+            ],
+        }
 
     return {
         "trending": extract("trending"),

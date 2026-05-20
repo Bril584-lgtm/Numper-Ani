@@ -1,4 +1,5 @@
 """Numper Ani — FastAPI backend server."""
+import asyncio
 import json
 import re
 import time
@@ -80,22 +81,116 @@ async def index():
 
 
 @app.get("/api/home")
-async def api_home():
+async def api_home(nsfw: bool = False):
     """Homepage data: trending hero + all row sections from AniList."""
     from sources.anilist_home import fetch_home_data
-    cached = _home_cache.get("data")
+    cache_key = "nsfw" if nsfw else "safe"
+    cached = _home_cache.get(cache_key)
     if cached:
         data, ts = cached
         if time.time() - ts < _HOME_CACHE_TTL:
             return data
-    data = await fetch_home_data()
-    _home_cache["data"] = (data, time.time())
+    data = await fetch_home_data(nsfw=nsfw)
+    _home_cache[cache_key] = (data, time.time())
     return data
 
 
+@app.get("/api/suggest")
+async def api_suggest(q: str = Query(..., min_length=1)):
+    gql = "query($s:String){Page(page:1,perPage:8){media(search:$s,type:ANIME,sort:SEARCH_MATCH){title{romaji english}coverImage{medium}format}}}"
+    try:
+        async with httpx.AsyncClient(timeout=5) as c:
+            r = await c.post("https://graphql.anilist.co",
+                json={"query": gql, "variables": {"s": q}},
+                headers={"Content-Type": "application/json", "Accept": "application/json"})
+            media = r.json().get("data", {}).get("Page", {}).get("media", [])
+        results = []
+        for m in media:
+            t = m.get("title") or {}
+            title = t.get("english") or t.get("romaji") or ""
+            if title:
+                results.append({"title": title, "thumb": (m.get("coverImage") or {}).get("medium", ""), "format": m.get("format", "")})
+        return {"results": results}
+    except Exception:
+        return {"results": []}
+
+
+_JIKAN_BASE = "https://api.jikan.moe/v4"
+_JIKAN_BATCH = 3  # Jikan pages fetched per display page (3×25=75 candidates)
+
+
+async def _jikan_page(c: httpx.AsyncClient, lup: str | None, jpage: int, sfw: bool = True) -> dict:
+    params: dict = {"page": jpage, "limit": 25, "order_by": "popularity", "sort": "asc"}
+    if lup and lup != "#":
+        params["letter"] = lup
+    if sfw:
+        params["sfw"] = "true"
+    try:
+        r = await c.get(f"{_JIKAN_BASE}/anime", params=params)
+        if r.status_code == 429:
+            return {}
+        return r.json()
+    except Exception:
+        return {}
+
+
+@app.get("/api/browse")
+async def api_browse(letter: str = Query(default="A"), page: int = Query(default=1, ge=1), nsfw: bool = False, dub: bool = False):
+    lup = letter.upper() if letter.upper().isalpha() else "#"
+    jikan_start = (page - 1) * _JIKAN_BATCH + 1
+
+    sfw = not nsfw
+    async with httpx.AsyncClient(timeout=20) as c:
+        pages_data = await asyncio.gather(
+            *[_jikan_page(c, lup, jikan_start + i, sfw=sfw) for i in range(_JIKAN_BATCH)]
+        )
+
+    # Ratings considered adult — filter out when nsfw=False
+    _ADULT_RATINGS = {"rx - hentai", "r+ - mild nudity"}
+
+    results = []
+    has_next = False
+    total = 0
+    for data in pages_data:
+        if not data:
+            continue
+        pagination = data.get("pagination") or {}
+        if not total:
+            total = (pagination.get("items") or {}).get("total", 0)
+        has_next = pagination.get("has_next_page", False)
+        for m in (data.get("data") or []):
+            title = (m.get("title_english") or m.get("title") or "").strip()
+            if not title:
+                continue
+            first = title[0].upper()
+            if lup == "#":
+                if first.isalpha():
+                    continue
+            elif first != lup:
+                continue
+            # Filter adult content when nsfw is off
+            rating = (m.get("rating") or "").lower()
+            is_adult = any(r in rating for r in _ADULT_RATINGS)
+            if not nsfw and is_adult:
+                continue
+            images = m.get("images") or {}
+            jpg = images.get("jpg") or {}
+            thumb = jpg.get("large_image_url") or jpg.get("image_url") or ""
+            score_raw = m.get("score") or 0
+            results.append({
+                "title": title,
+                "thumb": thumb,
+                "format": m.get("type") or "",
+                "score": int(score_raw * 10) if score_raw else 0,
+                "year": m.get("year") or 0,
+            })
+
+    return {"results": results, "has_next": has_next, "total": total}
+
+
 @app.get("/api/search")
-async def api_search(q: str = Query(..., min_length=1), dub: bool = False):
-    results = await source_router.search_all(q, dub=dub)
+async def api_search(q: str = Query(..., min_length=1), dub: bool = False, nsfw: bool = False):
+    results = await source_router.search_all(q, dub=dub, nsfw=nsfw)
     return {"results": results}
 
 
