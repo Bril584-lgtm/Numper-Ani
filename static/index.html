@@ -92,7 +92,7 @@
     #ep-thumb { width: 80px; height: 112px; border-radius: 8px; object-fit: cover; background: var(--border); }
     #ep-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
     #ep-meta { color: var(--muted); font-size: .875rem; }
-    #back-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .875rem; margin-bottom: 16px; }
+    #back-btn, #results-back-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .875rem; margin-bottom: 16px; }
     #refresh-eps-btn { margin-left: auto; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 1.1rem; transition: all .2s; flex-shrink: 0; }
     #refresh-eps-btn:hover { border-color: var(--accent); color: var(--accent); }
     #refresh-eps-btn.spinning { animation: spin .7s linear infinite; }
@@ -476,6 +476,7 @@
     </div>
 
     <div id="results-view" style="display:none">
+      <button id="results-back-btn">← Back</button>
       <div class="tabs">
         <div class="tab active" data-tab="all">All Sources</div>
       </div>
@@ -1097,6 +1098,12 @@ $('refresh-eps-btn').addEventListener('click', async () => {
     btn.classList.remove('spinning');
     btn.disabled = false;
   }
+});
+
+$('results-back-btn').addEventListener('click', () => {
+  hide($('results-view'));
+  show($('home-view'));
+  document.querySelector('main').classList.add('home-active');
 });
 
 $('back-btn').addEventListener('click', () => {
