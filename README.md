@@ -64,55 +64,93 @@ You launch it once from your terminal or by double-clicking a script. Everything
 
 ---
 
-## Requirements
+## Setup Guide
 
-- **Python 3.10 or newer** — [python.org/downloads](https://www.python.org/downloads/)
-- A modern web browser (Chrome, Firefox, Edge)
+No API keys. No accounts. No configuration files. Just follow these steps once.
+
+This should take about 5 minutes.
 
 ---
 
-## Installation
+### Step 1 — Install Python
 
-```bash
-# 1. Clone the repository
+1. Go to **https://www.python.org/downloads**
+2. Click the big yellow **Download Python** button
+3. Run the installer
+4. ⚠️ **IMPORTANT:** On the first screen, check **"Add Python to PATH"** before clicking Install
+5. Click **Install Now** and let it finish
+6. Verify it worked — open Command Prompt and type:
+   ```
+   python --version
+   ```
+   You should see something like `Python 3.12.0`
+
+---
+
+### Step 2 — Install Git
+
+1. Go to **https://git-scm.com/downloads**
+2. Click **Download for Windows**
+3. Run the installer — click Next through everything, defaults are fine
+4. Verify it worked:
+   ```
+   git --version
+   ```
+   You should see something like `git version 2.43.0`
+
+---
+
+### Step 3 — Download Numper Ani
+
+Open **Command Prompt** and run:
+
+```
 git clone https://github.com/Bril584-lgtm/Numper-Ani.git
 cd Numper-Ani
-
-# 2. Install Python dependencies
-pip install -r requirements.txt
-
-# 3. Install the headless browser (one-time, ~130 MB)
-python -m playwright install chromium
 ```
-
-No API keys. No configuration files. No accounts.
 
 ---
 
-## Usage
+### Step 4 — Install Dependencies
 
-**Windows — double-click launcher:**
+Still inside the `Numper-Ani` folder, run:
+
 ```
-run.bat
+pip install -r requirements.txt
 ```
 
-**Any platform — terminal:**
-```bash
+Wait for it to finish. This installs FastAPI, Playwright, and all required libraries.
+
+---
+
+### Step 5 — Install the Browser
+
+```
+playwright install chromium
+```
+
+This downloads a small headless browser used to extract streams from video sites. It's a one-time download (~130 MB) — let it finish.
+
+---
+
+### Step 6 — Launch
+
+**Windows:** Double-click **`run.bat`** inside the `Numper-Ani` folder.
+
+**Mac / Linux:** Run in terminal:
+```
 python main.py
 ```
 
-Your default browser will open automatically. If it doesn't, navigate to `http://localhost:6969`.
+Your browser will open automatically to `http://localhost:6969`.
+
+> To stop the app, close the terminal window or press `Ctrl+C` inside it.
 
 ---
 
-## Quick start
+## Every Time You Want to Use It
 
-1. The **homepage** loads with trending and seasonal rows — scroll or click anything to start
-2. Use the **search bar** to find a specific title; autocomplete will suggest as you type
-3. Toggle **DUB** or **NSFW** in the top bar as needed
-4. Click an anime card → pick an episode → watch
-5. If playback fails, use the **source switcher** above the video to try another provider
-6. **Skip Intro / Recap** buttons appear automatically — click them or let them count down
+Just double-click **`run.bat`**. That's it.
 
 ---
 
@@ -120,11 +158,13 @@ Your default browser will open automatically. If it doesn't, navigate to `http:/
 
 | Symptom | Fix |
 |---|---|
-| "No sources found" | Toggle DUB/SUB — the episode may not be available in your selected mode |
-| "All sources failed" | Switch providers using the source bar; external servers may be temporarily down |
-| Slow first load on some episodes | Normal — certain sources require a few extra seconds to resolve. Cached after first play |
-| Browser doesn't open | Go to `http://localhost:6969` manually |
-| Homepage has no images | Metadata service may be temporarily unavailable — search still works normally |
+| `python` is not recognized | You forgot to check "Add Python to PATH" during install. Uninstall and reinstall Python, making sure to check that box. |
+| `pip install` fails | Run Command Prompt as Administrator (right-click → Run as administrator) and try again. |
+| `playwright install` takes a long time | Normal — it's downloading a browser. Let it finish. |
+| "No sources found" | Toggle DUB/SUB — the episode may not be available in your selected mode. |
+| "All sources failed" | Use the source switcher above the player to try a different provider. |
+| Browser doesn't open automatically | Go to `http://localhost:6969` manually. |
+| Homepage has no images | The metadata service may be temporarily unavailable — search still works normally. |
 
 ---
 
