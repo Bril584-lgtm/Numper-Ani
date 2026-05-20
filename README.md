@@ -144,3 +144,9 @@ This software is a **personal-use aggregation client**. It makes HTTP requests t
 ---
 
 <p align="center">Built with FastAPI · HLS.js · Playwright · AniList &nbsp;·&nbsp; Made for anime lovers</p>
+
+---
+
+## Want Movies, TV, Spanish & Hentai too?
+
+Check out **[Numper Hub](https://github.com/Bril584-lgtm/Numper-Hub)** — the all-in-one version that includes Numper Ani plus Movies & TV, Spanish content, and Hentai in a single launcher.
