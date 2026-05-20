@@ -779,6 +779,7 @@ async function loadBrowse() {
       info.innerHTML = `<div class="card-title">${item.title}</div><div class="card-meta">${[item.format, item.year].filter(Boolean).join(' · ')}</div>`;
       card.appendChild(info);
       card.addEventListener('click', () => {
+        _prevView = 'browse';
         $('browse-view').classList.remove('open');
         $('browse-btn').classList.remove('active');
         show($('home-view'));
@@ -880,7 +881,7 @@ async function pickSug(i) {
     const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
     const target = norm(item.title);
     const best = _allResults.find(r => norm(r.title) === target) || _allResults[0];
-    _fromHomepage = false;
+    _prevView = 'results';
     hide($('home-view'));
     document.querySelector('main').classList.remove('home-active');
     await openAnime(best);
@@ -891,7 +892,7 @@ async function pickSug(i) {
 }
 
 // ─── Search ───────────────────────────────────────────────
-$('search-btn').addEventListener('click', () => { hideSug(); doSearch(); });
+$('search-btn').addEventListener('click', () => { hideSug(); _prevView = 'results'; doSearch(); });
 
 function showSearchLoading(label = 'Searching all sources…') {
   $('search-loading-label').textContent = label;
@@ -919,7 +920,6 @@ function showSearchLoading(label = 'Searching all sources…') {
 async function doSearch() {
   const q = $('search-input').value.trim();
   if (!q) return;
-  _fromHomepage = false;
   hide($('home-view'));
   document.querySelector('main').classList.remove('home-active');
   $('ep-panel').classList.remove('open');
@@ -963,7 +963,7 @@ function renderResults(results) {
         <div class="card-meta">${r.episodes ? r.episodes + ' eps' : ''}</div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${yearBadge}${fmtBadge}</div>
       </div>`;
-    card.addEventListener('click', () => openAnime(r));
+    card.addEventListener('click', () => { _prevView = 'results'; openAnime(r); });
     grid.appendChild(card);
   }
 }
@@ -973,7 +973,6 @@ const PROVIDERS = [
   { id: 'allanime',  label: 'AllAnime'  },
   { id: 'gogoanime', label: 'GogoAnime' },
   { id: 'animepahe', label: 'AnimePahe' },
-  { id: 'anikoto',   label: 'Anikoto'   },
 ];
 
 function _titlesMatch(a, b) {
@@ -1011,8 +1010,10 @@ async function openAnime(anime) {
   currentAnime = anime;
   hide($('results-view'));
   $('ep-panel').style.display = '';
-
   $('ep-panel').classList.add('open');
+  $('back-btn').textContent = _prevView === 'home' ? '← Back to home'
+    : _prevView === 'browse' ? '← Back to browse'
+    : '← Back to results';
 
   $('ep-title').textContent = anime.title;
   $('ep-meta').textContent = `${anime.episodes || '?'} episodes · ${anime.source} · ${dubMode ? 'DUB' : 'SUB'}`;
@@ -1100,10 +1101,14 @@ $('refresh-eps-btn').addEventListener('click', async () => {
 
 $('back-btn').addEventListener('click', () => {
   $('ep-panel').classList.remove('open');
-  if (_fromHomepage) {
-    _fromHomepage = false;
+  if (_prevView === 'home') {
     show($('home-view'));
     document.querySelector('main').classList.add('home-active');
+  } else if (_prevView === 'browse') {
+    $('browse-view').classList.add('open');
+    $('browse-btn').classList.add('active');
+    hide($('home-view'));
+    hide($('results-view'));
   } else {
     show($('results-view'));
   }
@@ -1539,7 +1544,7 @@ $('player-back').addEventListener('click', () => { ccBtn.style.display = 'none';
 const _origPlayEp = playEpisode;
 
 // ─── Navigation state ─────────────────────────────────────
-let _fromHomepage = false;
+let _prevView = 'results'; // 'home' | 'results' | 'browse'
 
 // ─── Homepage ─────────────────────────────────────────────
 let _heroItems = [];
@@ -1784,7 +1789,7 @@ async function openFromTitle(title) {
     buildGenreChips(results);
     const titleLow = title.toLowerCase();
     const best = results.find(r => r.title.toLowerCase() === titleLow) || results[0];
-    _fromHomepage = true;
+    _prevView = 'home';
     hide($('home-view'));
     document.querySelector('main').classList.remove('home-active');
     await openAnime(best);
