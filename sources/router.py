@@ -2,7 +2,7 @@
 import asyncio
 import urllib.parse
 import httpx
-from . import allanime, hianime, gogoanime, playwright_extractor, animepahe
+from . import allanime, hianime, gogoanime, playwright_extractor, animepahe, anikoto
 
 _ANILIST_CORRECT_GQL = "query($s:String){Page(page:1,perPage:1){media(search:$s,type:ANIME,sort:SEARCH_MATCH){title{romaji english}}}}"
 
@@ -35,14 +35,15 @@ def _merge(*buckets) -> list[dict]:
 
 
 async def search_all(query: str, dub: bool = False, nsfw: bool = False) -> list[dict]:
-    results_aa, results_hi, results_gogo, results_pahe = await asyncio.gather(
+    results_aa, results_hi, results_gogo, results_pahe, results_ani = await asyncio.gather(
         allanime.search(query, dub=dub, nsfw=nsfw),
         hianime.search(query, dub=dub),
         gogoanime.search(query, dub=dub),
         animepahe.search(query, dub=dub),
+        anikoto.search(query, dub=dub),
         return_exceptions=True,
     )
-    merged = _merge(results_aa, results_hi, results_gogo, results_pahe)
+    merged = _merge(results_aa, results_hi, results_gogo, results_pahe, results_ani)
 
     # Fuzzy fallback: if few results, ask AniList for corrected title and retry
     if len(merged) < 3:
@@ -78,6 +79,8 @@ async def get_stream(source: str, show_id: str, ep: int, dub: bool = False) -> d
         return await _resolve_hianime(show_id, ep, dub)
     elif source == "animepahe":
         return await animepahe.get_stream(show_id, ep, dub=dub)
+    elif source == "anikoto":
+        return await anikoto.get_stream(show_id, ep, dub=dub)
     return {"error": "Unknown source"}
 
 
@@ -103,8 +106,8 @@ async def _resolve_allanime(show_id: str, ep: str, dub: bool) -> dict:
     if not sources:
         return {"error": "No sources found on AllAnime"}
 
-    # Priority: Filemoon (reliable m3u8) → Vid-mp4 → direct MP4 → others
-    priority = ["Default", "Fm-Hls", "Vid-mp4", "Luf-Mp4", "S-mp4", "Ok", "Yt-mp4", "Sw", "Vg", "Mp4"]
+    # Priority: proven reliable sources first; Luf-Mp4 deprioritised (HiAnime CDN offline)
+    priority = ["Default", "S-mp4", "Fm-Hls", "Vid-mp4", "Yt-mp4", "Ok", "Sw", "Vg", "Mp4", "Luf-Mp4"]
 
     def source_rank(s):
         try:

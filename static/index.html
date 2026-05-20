@@ -93,6 +93,10 @@
     #ep-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; }
     #ep-meta { color: var(--muted); font-size: .875rem; }
     #back-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-size: .875rem; margin-bottom: 16px; }
+    #refresh-eps-btn { margin-left: auto; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; font-size: 1.1rem; transition: all .2s; flex-shrink: 0; }
+    #refresh-eps-btn:hover { border-color: var(--accent); color: var(--accent); }
+    #refresh-eps-btn.spinning { animation: spin .7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     #provider-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
     #provider-label { font-size: .75rem; color: var(--muted); margin-right: 4px; }
     .prov-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); font-size: .8rem; cursor: pointer; transition: all .15s; }
@@ -496,6 +500,7 @@
           <div id="ep-title"></div>
           <div id="ep-meta"></div>
         </div>
+        <button id="refresh-eps-btn" title="Check for new episodes">↻</button>
       </div>
       <div id="provider-bar"></div>
       <div id="ep-grid"></div>
@@ -968,6 +973,7 @@ const PROVIDERS = [
   { id: 'allanime',  label: 'AllAnime'  },
   { id: 'gogoanime', label: 'GogoAnime' },
   { id: 'animepahe', label: 'AnimePahe' },
+  { id: 'anikoto',   label: 'Anikoto'   },
 ];
 
 function _titlesMatch(a, b) {
@@ -1056,6 +1062,42 @@ async function openAnime(anime) {
     .catch(() => {});
 }
 
+$('refresh-eps-btn').addEventListener('click', async () => {
+  if (!currentAnime) return;
+  const btn = $('refresh-eps-btn');
+  btn.classList.add('spinning');
+  btn.disabled = true;
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(currentAnime.title)}&dub=${dubMode}&nsfw=${nsfwMode}`);
+    const data = await res.json();
+    const match = (data.results || []).find(r => r.source === currentAnime.source) || (data.results || [])[0];
+    if (match && match.episodes && match.episodes !== currentAnime.episodes) {
+      currentAnime.episodes = match.episodes;
+      currentAnime.id = match.id;
+      $('ep-meta').textContent = `${match.episodes} episodes · ${currentAnime.source} · ${dubMode ? 'DUB' : 'SUB'}`;
+      const grid = $('ep-grid');
+      const history = await fetchHistory();
+      const savedEp = history[`${currentAnime.source}:${currentAnime.id}`]?.ep || 0;
+      grid.innerHTML = '';
+      for (let i = 1; i <= match.episodes; i++) {
+        const b = document.createElement('button');
+        b.className = 'ep-btn' + (i === savedEp ? ' current' : '');
+        b.textContent = i;
+        b.addEventListener('click', () => playEpisode(currentAnime, i));
+        grid.appendChild(b);
+      }
+      status(`Updated — ${match.episodes} episodes found`);
+    } else {
+      status('Already up to date');
+    }
+  } catch(e) {
+    status('Refresh failed');
+  } finally {
+    btn.classList.remove('spinning');
+    btn.disabled = false;
+  }
+});
+
 $('back-btn').addEventListener('click', () => {
   $('ep-panel').classList.remove('open');
   if (_fromHomepage) {
@@ -1070,8 +1112,9 @@ $('back-btn').addEventListener('click', () => {
 // ─── Playback ─────────────────────────────────────────────
 const SOURCE_LABELS = {
   'Yt-mp4': 'Direct MP4', 'Fm-Hls': 'Filemoon', 'Sw': 'Streamwish',
-  'Vid-mp4': 'GogoAnime', 'Ok': 'OK.ru', 'S-mp4': 'Sharepoint',
-  'Luf-Mp4': 'HiAnime', 'Default': 'Wixmp', 'Vg': 'Vidguard', 'Mp4': 'Mp4Upload',
+  'Vid-mp4': 'GogoAnime CDN', 'Ok': 'OK.ru', 'S-mp4': 'Sharepoint',
+  'Luf-Mp4': 'CDN MP4', 'Default': 'Wixmp', 'Vg': 'Vidguard', 'Mp4': 'Mp4Upload',
+  'anikoto': 'Anikoto', 'anikoto (pw)': 'Anikoto',
 };
 
 function _openPlayer(anime, ep, streamData) {
@@ -1195,10 +1238,20 @@ function loadStream(url, type) {
   }
 
   if (type === 'hls' && Hls.isSupported()) {
-    hls = new Hls({ enableWorker: true, lowLatencyMode: false, maxBufferLength: 30 });
+    hls = new Hls({
+      enableWorker: true,
+      lowLatencyMode: false,
+      maxBufferLength: 30,
+      startLevel: 99,               // clamps to highest available level
+      abrEwmaDefaultEstimate: 8000000, // assume 8 Mbps → ABR stays high
+      capLevelToPlayerSize: false,  // never downgrade due to player size
+    });
     hls.loadSource(url);
     hls.attachMedia(video);
-    hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+    hls.on(Hls.Events.MANIFEST_PARSED, (_, d) => {
+      hls.currentLevel = d.levels.length - 1; // lock to highest on first load
+      onReady();
+    });
     hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, (_, data) => {
       if (data.subtitleTracks?.length) _buildSubMenu(data.subtitleTracks);
     });
@@ -1206,10 +1259,10 @@ function loadStream(url, type) {
       if (data.fatal) {
         if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
           hls.destroy();
-          hls = new Hls();
+          hls = new Hls({ startLevel: 99, abrEwmaDefaultEstimate: 8000000, capLevelToPlayerSize: false });
           hls.loadSource(`${API}/api/proxy?url=${encodeURIComponent(url)}`);
           hls.attachMedia(video);
-          hls.on(Hls.Events.MANIFEST_PARSED, onReady);
+          hls.on(Hls.Events.MANIFEST_PARSED, (_, d) => { hls.currentLevel = d.levels.length - 1; onReady(); });
           hls.on(Hls.Events.ERROR, (__, d) => { if (d.fatal) onFatal(d.details); });
         } else {
           onFatal(data.details);
@@ -1326,7 +1379,9 @@ async function loadSourceSwitcher(anime, ep) {
     const data = await res.json();
     bar.innerHTML = '';
 
+    const _DEAD_SOURCES = new Set(['Luf-Mp4']);
     for (const src of data.sources) {
+      if (_DEAD_SOURCES.has(src.name)) continue;
       const btn = document.createElement('button');
       btn.className = 'src-btn';
       btn.textContent = SOURCE_LABELS[src.name] || src.name;
@@ -1354,7 +1409,7 @@ async function switchSource(btn, src) {
     const res = await fetch(`/api/resolve?embed_url=${encodeURIComponent(src.url)}&name=${encodeURIComponent(src.name)}`);
     const data = await res.json();
     btn.classList.remove('loading');
-    if (data.error) throw new Error(data.detail || data.error);
+    if (!res.ok || data.error || data.detail || !data.url) throw new Error(data.detail || data.error || 'No stream URL returned');
     $('player-src').textContent = data.source || src.name;
     loadStream(data.url, data.type);
   } catch (e) {
@@ -1725,6 +1780,8 @@ async function openFromTitle(title) {
     loader.done();
     const results = data.results || [];
     if (!results.length) { status('⚠ Not found on streaming sites: ' + title, true); return; }
+    _allResults = results;
+    buildGenreChips(results);
     const titleLow = title.toLowerCase();
     const best = results.find(r => r.title.toLowerCase() === titleLow) || results[0];
     _fromHomepage = true;
